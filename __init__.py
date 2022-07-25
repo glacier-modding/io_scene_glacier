@@ -63,7 +63,7 @@ class MyProperties(PropertyGroup):
 	)
 
 	mjbaexport_path: StringProperty(
-		name = "MJBA JSON File",
+		name = "MJBA JSON Export Path",
 		description="Choose where to save the MJBA JSON file",
 		default="",
 		maxlen=1024,
@@ -103,6 +103,12 @@ class MyProperties(PropertyGroup):
 		name = "World Transform",
 		description="Toggle whether World Transform is applied to the animation",
 		default = False
+	)
+
+	meshpicker: PointerProperty(
+		name = "Mesh Picker",
+		description="Choose a mesh",
+		type = bpy.types.Object
 	)
 
 # ------------------------------------------------------------------------
@@ -155,6 +161,7 @@ class Glacier_Import_Panel(Panel):
 		scene = context.scene
 		mytool = scene.my_tool
 
+		layout.prop(mytool, "meshpicker")
 		layout.prop(mytool, "mjbaimport_path")
 		layout.operator("glacier.importmjba")
 		layout.label(text="Note: You will first need to import a GLB model from the game.")
@@ -179,6 +186,7 @@ class Glacier_Export_Panel(Panel):
 		layout.prop(mytool, "atmd_dependencyhash")
 		layout.label(text="Note: You only need a custom ATMD file if you have want custom audio events")
 		layout.separator()
+		layout.prop(mytool, "meshpicker")
 		layout.prop(mytool, "mjbaexport_path")
 		layout.label(text="Location to save the MJBA JSON file")
 		layout.operator("glacier.exportmjba")
@@ -188,7 +196,6 @@ class Glacier_Export_Panel(Panel):
 		layout.label(text="Location to save the MRTR JSON file")
 		layout.label(text="Note: You only need a custom MRTR file if you have added/removed any of the bones")
 		layout.operator("glacier.exportmrtr")
-		layout.prop(mytool, "my_enum")
 
 # ------------------------------------------------------------------------
 #    Registration
