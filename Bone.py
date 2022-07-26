@@ -26,30 +26,6 @@ class Bone:
 		print("bone:", self.name, "frame:", frame, "matrix:", matrix)
 		self.matrix[frame] = matrix
 	
-	def set_position(self, frame, position, index):
-		print("bone:", self.name, "frame:", frame, "position:", position, "index:", index)
-		self.positions[frame] = position
-	
-	def get_position(self, frame, position, index):
-		return self.positions[frame]
-	
-	def set_rotation_euler(self, frame, rotation, index):
-		print("bone:", self.name, "frame:", frame, "rotation_euler:", rotation, "index:", index)
-		self.rotations[frame] = rotation
-	
-	def get_rotation_euler(self, frame, rotation, index):
-		return self.rotations[frame]
-	
-	def set_rotation_quaternion(self, frame, rotation, index):
-		print("bone:", self.name, "frame:", frame, "rotation_quaternion:", rotation, "index:", index)
-		self.rotations[frame] = rotation
-	
-	def get_rotation_quaternion(self, frame, rotation, index):
-		return self.rotations[frame]
-	
-	def set_scale(self, frame, scale, index):
-		print("bone:", self.name, "frame:", frame, "scale:", scale, "index:", index)
-		self.scales[frame] = scale
-	
-	def get_scale(self, frame, scale, index):
-		return self.scales[frame]
+	def get_matrix(self, frame, matrix):
+		print("bone:", self.name, "frame:", frame, "matrix:", matrix)
+		return self.matrix[frame]

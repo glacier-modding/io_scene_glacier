@@ -37,7 +37,7 @@ bl_info = {
 }
 
 import bpy
-from . import GlacierEngine
+from . import Animation
 from . import message_box
 
 from bpy.props import (StringProperty,
@@ -53,7 +53,7 @@ from bpy.types import (Panel,
 #    Global Animation Object
 # ------------------------------------------------------------------------
 
-glacier_engine = GlacierEngine.GlacierEngine()
+animation = Animation.Animation()
 
 # ------------------------------------------------------------------------
 #    Scene Properties
@@ -141,17 +141,8 @@ class Glacier_ImportMJBA(Operator):
 		if mytool.meshpicker.type != 'ARMATURE':
 			message_box.MessageBox(mytool.meshpicker.name + " does not have an armature!", icon = "ERROR")
 			return {'FINISHED'}
-		if mytool.meshpicker.animation_data == None:
-			message_box.MessageBox(mytool.meshpicker.name + " does not have any animation data!", icon = "ERROR")
-			return {'FINISHED'}
-		if mytool.meshpicker.animation_data.action == None:
-			message_box.MessageBox(mytool.meshpicker.name + " does not have any animation data action!", icon = "ERROR")
-			return {'FINISHED'}
-		if mytool.meshpicker.animation_data.action.fcurves == None:
-			message_box.MessageBox(mytool.meshpicker.name + " does not have any animation data action fcurves!", icon = "ERROR")
-			return {'FINISHED'}
-		global glacier_engine
-		glacier_engine.import_mjba(mytool.meshpicker)
+		global animation
+		animation.import_mjba(mytool.meshpicker)
 
 		return {'FINISHED'}
 
@@ -177,8 +168,8 @@ class Glacier_ExportMJBA(Operator):
 		if mytool.meshpicker.animation_data.action.fcurves == None:
 			message_box.MessageBox(mytool.meshpicker.name + " does not have any animation data action fcurves!", icon = "ERROR")
 			return {'FINISHED'}
-		global glacier_engine
-		glacier_engine.export_mjba(mytool.meshpicker)
+		global animation
+		animation.export_mjba(mytool.meshpicker)
 
 		return {'FINISHED'}
 
@@ -189,8 +180,8 @@ class Glacier_ExportMRTR(Operator):
 	def execute(self, context):
 		scene = context.scene
 		mytool = scene.my_tool
-		global glacier_engine
-		glacier_engine.export_mrtr()
+		global animation
+		animation.export_mrtr()
 
 		return {'FINISHED'}
 
