@@ -162,8 +162,23 @@ class Glacier_ExportMJBA(Operator):
 	def execute(self, context):
 		scene = context.scene
 		mytool = scene.my_tool
+		if mytool.meshpicker == None:
+			message_box.MessageBox("No object selected!", icon = "ERROR")
+			return {'FINISHED'}
+		if mytool.meshpicker.type != 'ARMATURE':
+			message_box.MessageBox(mytool.meshpicker.name + " does not have an armature!", icon = "ERROR")
+			return {'FINISHED'}
+		if mytool.meshpicker.animation_data == None:
+			message_box.MessageBox(mytool.meshpicker.name + " does not have any animation data!", icon = "ERROR")
+			return {'FINISHED'}
+		if mytool.meshpicker.animation_data.action == None:
+			message_box.MessageBox(mytool.meshpicker.name + " does not have any animation data action!", icon = "ERROR")
+			return {'FINISHED'}
+		if mytool.meshpicker.animation_data.action.fcurves == None:
+			message_box.MessageBox(mytool.meshpicker.name + " does not have any animation data action fcurves!", icon = "ERROR")
+			return {'FINISHED'}
 		global glacier_engine
-		glacier_engine.export_mjba(mytool.animationpicker)
+		glacier_engine.export_mjba(mytool.meshpicker)
 
 		return {'FINISHED'}
 
@@ -220,7 +235,7 @@ class Glacier_Export_Panel(Panel):
 		layout.prop(mytool, "atmd_dependencyhash")
 		layout.label(text="Note: You only need a custom ATMD file if you have want custom audio events")
 		layout.separator()
-		layout.prop(mytool, "animationpicker")
+		layout.prop(mytool, "meshpicker")
 		layout.prop(mytool, "mjbaexport_path")
 		layout.label(text="Location to save the MJBA JSON file")
 		layout.operator("glacier.exportmjba")

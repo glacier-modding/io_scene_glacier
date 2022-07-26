@@ -6,25 +6,27 @@ from . import MRTR
 
 class Animation:
 	def __init__(self, object):
-		#self.bones_list = [bone.name for bone in object.data.bones]
-		self.bones = {}
-		#data_paths = {}
-		for fcurve in object.animation_data.action.fcurves:
-			#if fcurve.data_path not in data_paths:
-				#data_paths[fcurve.data_path] = ""
+		self.object = object
+		self.bones = {}		
+		for fcurve in self.object.animation_data.action.fcurves:
 			animation_type = fcurve.data_path[fcurve.data_path.rfind('.') + 1:]
 			bone = fcurve.data_path.split('"')[1]
 			if bone not in self.bones:
-				self.bones[bone] = Bone.Bone(bone)            
+				self.bones[bone] = Bone.Bone(object, bone)
 			for keyframe in fcurve.keyframe_points:
 				if animation_type == "location":
-					self.bones[bone].set_position(keyframe.co[0], keyframe.co[1], fcurve.array_index)
+					self.bones[bone].set_position_animated()
 				elif animation_type == "rotation_euler":
-					self.bones[bone].set_rotation_euler(keyframe.co[0], keyframe.co[1], fcurve.array_index)
+					self.bones[bone].set_rotation_animated()
 				elif animation_type == "rotation_quaternion":
-					self.bones[bone].set_rotation_quaternion(keyframe.co[0], keyframe.co[1], fcurve.array_index)
+					self.bones[bone].set_rotation_animated()
 				elif animation_type == "scale":
-					self.bones[bone].set_scale(keyframe.co[0], keyframe.co[1], fcurve.array_index)
+					self.bones[bone].set_scale_animated()
+		for frame in range(bpy.context.scene.frame_start, bpy.context.scene.frame_end + 1):
+			bpy.context.scene.frame_set(frame)
+			for bone in object.pose.bones:
+				if bone in self.bones:
+					self.bones[bone].set_matrix(frame, bone.matrix)
 
 	def import_animation(self):
 		pass
