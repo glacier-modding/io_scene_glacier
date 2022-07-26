@@ -37,6 +37,8 @@ bl_info = {
 }
 
 import bpy
+from . import GlacierEngine
+from . import message_box
 
 from bpy.props import (StringProperty,
 					   BoolProperty,
@@ -47,6 +49,11 @@ from bpy.types import (Panel,
 					   PropertyGroup,
 					   )
 
+# ------------------------------------------------------------------------
+#    Global Animation Object
+# ------------------------------------------------------------------------
+
+glacier_engine = GlacierEngine.GlacierEngine()
 
 # ------------------------------------------------------------------------
 #    Scene Properties
@@ -111,6 +118,12 @@ class MyProperties(PropertyGroup):
 		type = bpy.types.Object
 	)
 
+	animationpicker: PointerProperty(
+		name = "Animation Picker",
+		description="Choose an animation",
+		type = bpy.types.Action
+	)
+
 # ------------------------------------------------------------------------
 #    Operators
 # ------------------------------------------------------------------------
@@ -122,6 +135,23 @@ class Glacier_ImportMJBA(Operator):
 	def execute(self, context):
 		scene = context.scene
 		mytool = scene.my_tool
+		if mytool.meshpicker == None:
+			message_box.MessageBox("No object selected!", icon = "ERROR")
+			return {'FINISHED'}
+		if mytool.meshpicker.type != 'ARMATURE':
+			message_box.MessageBox(mytool.meshpicker.name + " does not have an armature!", icon = "ERROR")
+			return {'FINISHED'}
+		if mytool.meshpicker.animation_data == None:
+			message_box.MessageBox(mytool.meshpicker.name + " does not have any animation data!", icon = "ERROR")
+			return {'FINISHED'}
+		if mytool.meshpicker.animation_data.action == None:
+			message_box.MessageBox(mytool.meshpicker.name + " does not have any animation data action!", icon = "ERROR")
+			return {'FINISHED'}
+		if mytool.meshpicker.animation_data.action.fcurves == None:
+			message_box.MessageBox(mytool.meshpicker.name + " does not have any animation data action fcurves!", icon = "ERROR")
+			return {'FINISHED'}
+		global glacier_engine
+		glacier_engine.import_mjba(mytool.meshpicker)
 
 		return {'FINISHED'}
 
@@ -132,6 +162,8 @@ class Glacier_ExportMJBA(Operator):
 	def execute(self, context):
 		scene = context.scene
 		mytool = scene.my_tool
+		global glacier_engine
+		glacier_engine.export_mjba(mytool.animationpicker)
 
 		return {'FINISHED'}
 
@@ -142,6 +174,8 @@ class Glacier_ExportMRTR(Operator):
 	def execute(self, context):
 		scene = context.scene
 		mytool = scene.my_tool
+		global glacier_engine
+		glacier_engine.export_mrtr()
 
 		return {'FINISHED'}
 
@@ -154,7 +188,7 @@ class Glacier_Import_Panel(Panel):
 	bl_space_type = "PROPERTIES"
 	bl_region_type = "WINDOW"
 	bl_context = "scene"
-	bl_default_closed = True
+	bl_options = {'DEFAULT_CLOSED'}
 
 	def draw(self, context):
 		layout = self.layout
@@ -173,7 +207,7 @@ class Glacier_Export_Panel(Panel):
 	bl_space_type = "PROPERTIES"
 	bl_region_type = "WINDOW"
 	bl_context = "scene"
-	bl_default_closed = True
+	bl_options = {'DEFAULT_CLOSED'}
 
 	def draw(self, context):
 		layout = self.layout
@@ -186,7 +220,7 @@ class Glacier_Export_Panel(Panel):
 		layout.prop(mytool, "atmd_dependencyhash")
 		layout.label(text="Note: You only need a custom ATMD file if you have want custom audio events")
 		layout.separator()
-		layout.prop(mytool, "meshpicker")
+		layout.prop(mytool, "animationpicker")
 		layout.prop(mytool, "mjbaexport_path")
 		layout.label(text="Location to save the MJBA JSON file")
 		layout.operator("glacier.exportmjba")
@@ -200,7 +234,13 @@ class Glacier_Export_Panel(Panel):
 # ------------------------------------------------------------------------
 #    Registration
 # ------------------------------------------------------------------------
+def ShowMessageBox(message = "", title = "Message Box", icon = 'INFO'):
 
+    def draw(self, context):
+        self.layout.label(text=message)
+
+    bpy.context.window_manager.popup_menu(draw, title = title, icon = icon)
+	
 classes = (
 	MyProperties,
 	Glacier_ImportMJBA,
