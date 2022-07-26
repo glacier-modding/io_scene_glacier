@@ -142,7 +142,7 @@ class Glacier_ImportMJBA(Operator):
 			message_box.MessageBox(mytool.meshpicker.name + " does not have an armature!", icon = "ERROR")
 			return {'FINISHED'}
 		global animation
-		animation.import_mjba(mytool.meshpicker)
+		animation.import_mjba(mytool.meshpicker, mytool.mjbaimport_path)
 
 		return {'FINISHED'}
 

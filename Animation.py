@@ -5,7 +5,7 @@ from . import MJBA
 from . import MRTR
 
 class Animation:
-	def import_mjba(self, object):
+	def import_mjba(self, object, mjba_path):
 		bpy.ops.object.mode_set(mode='POSE')
 		self.object = object
 		self.bones = {}
@@ -18,7 +18,7 @@ class Animation:
 			bpy.context.scene.frame_end = 1
 			bpy.context.scene.frame_current = 1
 		self.mjba = MJBA.MJBA()
-		self.mjba.import_json("R:\\0090CB9A79180160.MJBA.JSON")
+		self.mjba.import_json(mjba_path)
 		bpy.context.scene.render.fps = self.mjba.get_fps()
 		bpy.context.scene.frame_end = self.mjba.get_frame_count()
 		bone_list = self.mjba.get_used_bone_list()
