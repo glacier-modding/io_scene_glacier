@@ -25,6 +25,7 @@ class Animation:
 		print(bone_list)
 		for bone in bone_list:
 			print(bone, "added to self bones")
+			#if bone == "Pelvis":
 			self.bones[bone] = Bone.Bone(object, bone)
 		for bone1 in object.pose.bones:
 			for bone2 in bone_list:
@@ -34,15 +35,19 @@ class Animation:
 		for frame in range(bpy.context.scene.frame_start, bpy.context.scene.frame_end + 1):
 			bpy.context.scene.frame_set(frame)
 			for bone in object.pose.bones:
-				print(bone.name, "in pose bones")
+				#print(bone.name, "in pose bones")
 				if bone.name in self.bones:
 					print(bone.name, "in self bones")
-					self.bones[bone.name].location = self.mjba.get_bone_location(frame - 1, bone.name)
-					object.pose.bones[bone.name].location = self.bones[bone.name].location
-					object.pose.bones[bone.name].keyframe_insert(data_path = "location")
-					self.bones[bone.name].rotation_quaternion = self.mjba.get_bone_rotation(frame - 1, bone.name)
-					object.pose.bones[bone.name].rotation_quaternion = self.bones[bone.name].rotation_quaternion
-					object.pose.bones[bone.name].keyframe_insert(data_path = "rotation_quaternion")
+					self.bones[bone.name].location = self.mjba.get_bone_location(frame, bone.name)
+					if self.bones[bone.name].location != None:
+						object.pose.bones[bone.name].location = self.bones[bone.name].location
+						object.pose.bones[bone.name].keyframe_insert(data_path = "location")
+					print(object.pose.bones[bone.name].location)
+					self.bones[bone.name].rotation_quaternion = self.mjba.get_bone_rotation(frame, bone.name)
+					if self.bones[bone.name].rotation_quaternion != None:
+						object.pose.bones[bone.name].rotation_quaternion = self.bones[bone.name].rotation_quaternion
+						object.pose.bones[bone.name].keyframe_insert(data_path = "rotation_quaternion")
+					print(object.pose.bones[bone.name].rotation_quaternion)
 	
 	def export_mjba(self, object):
 		bpy.ops.object.mode_set(mode='POSE')

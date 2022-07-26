@@ -30,7 +30,7 @@ class MJBA:
 
 	def get_bone_location(self, frame, bone):
 		if self.bones[bone][0] != None:
-			return (self.bones[bone][0]["x"], self.bones[bone][0]["y"], self.bones[bone][0]["z"])
+			return #(self.bones[bone][0]["x"], self.bones[bone][0]["y"], self.bones[bone][0]["z"])
 		x = self.mjbaJSON["Animation"][frame][bone]["Transform"]["x"]
 		y = self.mjbaJSON["Animation"][frame][bone]["Transform"]["y"]
 		z = self.mjbaJSON["Animation"][frame][bone]["Transform"]["z"]
@@ -38,7 +38,7 @@ class MJBA:
 
 	def get_bone_rotation(self, frame, bone):
 		if self.bones[bone][1] != None:
-			return (self.bones[bone][1]["w"], self.bones[bone][1]["x"], self.bones[bone][1]["y"], self.bones[bone][1]["z"])
+			return #(self.bones[bone][1]["w"], self.bones[bone][1]["x"], self.bones[bone][1]["y"], self.bones[bone][1]["z"])
 		w = self.mjbaJSON["Animation"][frame][bone]["Quaternion"]["w"]
 		x = self.mjbaJSON["Animation"][frame][bone]["Quaternion"]["x"]
 		y = self.mjbaJSON["Animation"][frame][bone]["Quaternion"]["y"]
