@@ -55,4 +55,4 @@ class MJBA:
 			#print(q)
 			#return (q.w, q.x, q.y, q.z)
 		#else:
-		return (-w, x, z, y)
+		return (w, x, z, y)
