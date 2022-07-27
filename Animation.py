@@ -23,16 +23,17 @@ class Animation:
 		bpy.context.scene.frame_end = self.mjba.get_frame_count()
 		bone_list = self.mjba.get_used_bone_list()
 		print(bone_list)
+		#debug_list = [ "Laboratory_Machine_D_Arm_Root", "Arm_Base", "Arm_Rotation_A" ]#"Ground", "Spine", "Spine1", "Spine2", "Neck", "Neck1", "Head" ]
 		for bone in bone_list:
+			#if bone in debug_list:
 			print(bone, "added to self bones")
-			#if bone == "Pelvis":
 			self.bones[bone] = Bone.Bone(object, bone)
 		for bone1 in object.pose.bones:
 			for bone2 in bone_list:
 				if bone1.name.lower() == bone2.lower():
 					bone1.name = bone2
 					print(bone1.name, "was changed to", bone2)
-		for frame in range(bpy.context.scene.frame_start, bpy.context.scene.frame_end + 1):
+		for frame in range(bpy.context.scene.frame_start, bpy.context.scene.frame_end):
 			bpy.context.scene.frame_set(frame)
 			for bone in object.pose.bones:
 				#print(bone.name, "in pose bones")
