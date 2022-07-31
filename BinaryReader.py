@@ -97,7 +97,7 @@ class BinaryReader:
 		bool_array = []
 		bytes = self.readUByteVec(size)
 		for i in range(size):
-			bit_array = bin(bytes[i])[2:].zfill(8) + bit_array		
+			bit_array = bin(bytes[i])[2:].zfill(8) + bit_array
 		for i in bit_array[::-1]:
 			bool_array.append(True if i == '1' else False)
 		return { "count" : sum(bool_array), "bones" : bool_array }

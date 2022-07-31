@@ -3,6 +3,8 @@ from .BinaryReader import BinaryReader
 from .MjbaReader import MjbaReader
 from .MrtrReader import MrtrReader
 from . import BlenderUI
+import math
+import mathutils
 
 class Animation:
 	def __init__(self, object, mjba_path, mrtr_path):
@@ -10,7 +12,7 @@ class Animation:
 		self.mjba_path = mjba_path
 		self.mrtr_path = mrtr_path
 
-	def import_animation(self):
+	def import_animation(self, quaternion_to_try):
 		with open(self.mjba_path, "rb") as f:
 			self.mjba = MjbaReader(BinaryReader(f))
 		with open(self.mrtr_path, "rb") as f:
@@ -42,30 +44,89 @@ class Animation:
 				if pose_bone.name in self.pose_bone_to_mrtr_bone:
 					bone = self.pose_bone_to_mrtr_bone[pose_bone.name]
 					if bone in self.bones:
-						print(bone, "in self bones")
+						#print(bone, "in self bones")
 						if self.bones[bone]["dynamic_transforms"] != None:
 							self.object.pose.bones[pose_bone.name].location = (self.bones[bone]["dynamic_transforms"][frame_index][0],
 																				self.bones[bone]["dynamic_transforms"][frame_index][1],
 																				self.bones[bone]["dynamic_transforms"][frame_index][2])
 							self.object.pose.bones[pose_bone.name].keyframe_insert(data_path = "location")
-							print(bone, "set transform to", self.bones[bone]["dynamic_transforms"][frame_index], "on frame", frame)
+							#print(bone, "set transform to", self.bones[bone]["dynamic_transforms"][frame_index], "on frame", frame)
 						if self.bones[bone]["dynamic_quaternions"] != None:
-							self.object.pose.bones[pose_bone.name].rotation_quaternion = (-self.bones[bone]["dynamic_quaternions"][frame_index][3],
-																							self.bones[bone]["dynamic_quaternions"][frame_index][0],
-																							self.bones[bone]["dynamic_quaternions"][frame_index][2],
-																							self.bones[bone]["dynamic_quaternions"][frame_index][1])
+							q = mathutils.Quaternion((self.bones[bone]["dynamic_quaternions"][frame_index][3],
+													self.bones[bone]["dynamic_quaternions"][frame_index][0],
+													self.bones[bone]["dynamic_quaternions"][frame_index][1],
+													self.bones[bone]["dynamic_quaternions"][frame_index][2]))
+							#print(q)
+							if self.bones[bone]["bind_poses_quaternions"] != None:
+								pass
+								'''q = q @ mathutils.Quaternion((self.bones[bone]["bind_poses_quaternions"][3],
+															self.bones[bone]["bind_poses_quaternions"][0],
+															self.bones[bone]["bind_poses_quaternions"][1],
+															self.bones[bone]["bind_poses_quaternions"][2]))
+								q = q @ mathutils.Quaternion((self.bones[bone]["bind_poses_quaternions"][7],
+															self.bones[bone]["bind_poses_quaternions"][4],
+															self.bones[bone]["bind_poses_quaternions"][5],
+															self.bones[bone]["bind_poses_quaternions"][66]))'''
+							#q = q @ mathutils.Quaternion((0.0, 0.0, 1.0), -math.radians(45.0))
+							print(q)
+							#rotation_quaternion = q
+							quaternion_to_try_index = 0
+							done = False
+							for a in range(2):
+								if not done:
+									if a == 0:
+										self.q1 = q.w
+									elif a == 1:
+										self.q1 = -q.w
+									for b in range(2):
+										if not done:
+											if b == 0:
+												self.q2 = q.x
+											elif b == 1:
+												self.q2 = -q.x
+											for c in range(2):
+												if not done:
+													if c == 0:
+														self.q3 = q.z
+													elif c == 1:
+														self.q3 = -q.z
+													for d in range(2):
+														if not done:
+															if d == 0:
+																self.q4 = q.y
+															elif d == 1:
+																self.q4 = -q.y
+															if quaternion_to_try == quaternion_to_try_index:
+																if a == 0:
+																	print("q.w")
+																elif a == 1:
+																	print("-q.w")
+																if b == 0:
+																	print("q.x")
+																elif b == 1:
+																	print("-q.x")
+																if c == 0:
+																	print("q.z")
+																elif c == 1:
+																	print("-q.z")
+																if d == 0:
+																	print("q.y")
+																elif d == 1:
+																	print("-q.y")
+																rotation_quaternion = (self.q1, self.q2, self.q3, self.q4)
+																done = True
+															quaternion_to_try_index += 1
+							self.object.pose.bones[pose_bone.name].rotation_quaternion = rotation_quaternion
 							self.object.pose.bones[pose_bone.name].keyframe_insert(data_path = "rotation_quaternion")
-							print(bone, "set quaternion to", self.bones[bone]["dynamic_quaternions"][frame_index], "on frame", frame)
+							#print(bone, "set quaternion to", self.bones[bone]["dynamic_quaternions"][frame_index], "on frame", frame)
 							if self.mrtr_bone_to_pose_bone[bone] in self.twist_bone_map:
 								if self.twist_bone_map[self.mrtr_bone_to_pose_bone[bone]] in self.pose_bones:
-									self.object.pose.bones[self.twist_bone_map[self.mrtr_bone_to_pose_bone[bone]]].rotation_quaternion = (-self.bones[bone]["dynamic_quaternions"][frame_index][3],
-																																		self.bones[bone]["dynamic_quaternions"][frame_index][0],
-																																		self.bones[bone]["dynamic_quaternions"][frame_index][2],
-																																		self.bones[bone]["dynamic_quaternions"][frame_index][1])
+									self.object.pose.bones[self.twist_bone_map[self.mrtr_bone_to_pose_bone[bone]]].rotation_quaternion = rotation_quaternion
 									self.object.pose.bones[self.twist_bone_map[self.mrtr_bone_to_pose_bone[bone]]].keyframe_insert(data_path = "rotation_quaternion")
-									print(self.twist_bone_map[self.mrtr_bone_to_pose_bone[bone]], "set quaternion to", self.bones[bone]["dynamic_quaternions"][frame_index], "on frame", frame)
+									#print(self.twist_bone_map[self.mrtr_bone_to_pose_bone[bone]], "set quaternion to", self.bones[bone]["dynamic_quaternions"][frame_index], "on frame", frame)
 		for pose_bone in self.object.pose.bones:				
-			print(pose_bone.name)
+			#print(pose_bone.name)
+			pass
 
 	def apply_animation(self):
 		'''bpy.ops.object.mode_set(mode='POSE')
