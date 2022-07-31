@@ -35,7 +35,7 @@ class Animation:
 								"l_thigh" : "lthightwist1",
 								"r_thigh" : "rthightwist1" }
 		self.load_bones()
-		for frame in range(bpy.context.scene.frame_start, bpy.context.scene.frame_end):
+		for frame in range(bpy.context.scene.frame_start, bpy.context.scene.frame_end + 1):
 			bpy.context.scene.frame_set(frame)
 			frame_index = frame - 1
 			for pose_bone in self.object.pose.bones:
