@@ -1,8 +1,7 @@
 import os
 import sys
-import json
 
-class Mjba:
+class MjbaReader:
 	def __init__(self, br):
 		self.mjba_header = MjbaHeader(br)
 		self.variable_fps = VariableFps(br)
@@ -73,14 +72,14 @@ class Animation:
 			if self.has_bind_poses:
 				self.bones_with_static_bind_poses = br.readUBytesToBitBoolArray(16)
 				br.seekBy(8)
-		self.static_bone_quaternions = br.readUShortToFloatVec(self.static_quaternion_bone_count)
+		self.static_bone_quaternions = br.readUShortToFloatVec(self.static_quaternion_bone_count * 4)
 		self.dynamic_bone_quaternions = br.readUShortToFloatVec((self.used_bone_count - self.static_quaternion_bone_count) * 4 * self.frame_count_1)
 		if self.has_bind_poses:
-			self.bone_bind_poses_quaternions = br.readUShortToFloatVec(self.bones_with_static_bind_poses["count"] * 2)
-		self.static_bone_transforms = br.readUShortToFloatVec(self.static_transform_bone_count)
+			self.bone_bind_poses_quaternions = br.readUShortToFloatVec(self.bones_with_static_bind_poses["count"] * 8)
+		self.static_bone_transforms = br.readUShortToFloatVec(self.static_transform_bone_count * 4)
 		self.dynamic_bone_transforms = br.readUShortToFloatVec((self.used_bone_count - self.static_transform_bone_count) * 4 * self.frame_count_1)
 		if self.has_bind_poses:
-			self.bone_bind_poses_transforms = br.readUShortToFloatVec(self.bones_with_static_bind_poses["count"] * 2)
+			self.bone_bind_poses_transforms = br.readUShortToFloatVec(self.bones_with_static_bind_poses["count"] * 8)
 		br.seekBy(self.animation_data_size - (br.tell() - animation_data_size_offset))
 		if self.animation_data_size > 0:
 			self.world_transforms = br.readFloatVec(self.frame_count_1 * 8)

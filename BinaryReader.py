@@ -89,8 +89,6 @@ class BinaryReader:
 	def readFloatVec(self, size):
 		vec = [0] * size
 		for i in range(size):
-			print(self.tell())
-			print(i+1)
 			vec[i] = self.readFloat()
 		return vec
 
@@ -103,3 +101,23 @@ class BinaryReader:
 		for i in bit_array[::-1]:
 			bool_array.append(True if i == '1' else False)
 		return { "count" : sum(bool_array), "bones" : bool_array }
+
+	def readUIntVec(self, size):
+		vec = [0] * size
+		for i in range(size):
+			vec[i] = self.readUInt()
+		return vec
+
+	def readIntVec(self, size):
+		vec = [0] * size
+		for i in range(size):
+			vec[i] = self.readInt()
+		return vec
+
+	def readString(self):
+		string = []
+		while True:
+			c = self.file.read(1)
+			if c == b'\x00':
+				return b"".join(string)
+			string.append(c)

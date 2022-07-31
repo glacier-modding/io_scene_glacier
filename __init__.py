@@ -37,8 +37,8 @@ bl_info = {
 }
 
 import bpy
-from . import Animation
-from . import message_box
+from .GlacierEngine import GlacierEngine
+from . import BlenderUI
 
 from bpy.props import (StringProperty,
 					   BoolProperty,
@@ -53,7 +53,7 @@ from bpy.types import (Panel,
 #    Global Animation Object
 # ------------------------------------------------------------------------
 
-animation = Animation.Animation()
+glacier_engine = GlacierEngine()
 
 # ------------------------------------------------------------------------
 #    Scene Properties
@@ -62,24 +62,32 @@ animation = Animation.Animation()
 class MyProperties(PropertyGroup):
 
 	mjbaimport_path: StringProperty(
-		name="MJBA JSON Import Path",
-		description="Path to the MJBA JSON file to import",
+		name="MJBA Import Path",
+		description="Path to the MJBA file to import",
 		default="",
 		maxlen=1024,
 		subtype='FILE_PATH',
 	)
 
 	mjbaexport_path: StringProperty(
-		name = "MJBA JSON Export Path",
-		description="Choose where to save the MJBA JSON file",
+		name = "MJBA Export Path",
+		description="Choose where to save the MJBA file",
+		default="",
+		maxlen=1024,
+		subtype='FILE_PATH'
+		)
+
+	mrtrimport_path: StringProperty(
+		name = "MRTR Import Path",
+		description="Path to the MRTR file to import",
 		default="",
 		maxlen=1024,
 		subtype='FILE_PATH'
 		)
 
 	mrtrexport_path: StringProperty(
-		name = "MRTR JSON File",
-		description="Choose where to save the MRTR JSON file",
+		name = "MRTR Export Path",
+		description="Choose where to save the MRTR file",
 		default="",
 		maxlen=1024,
 		subtype='FILE_PATH'
@@ -129,20 +137,23 @@ class MyProperties(PropertyGroup):
 # ------------------------------------------------------------------------
 
 class Glacier_ImportMJBA(Operator):
-	bl_label = "Import MJBA JSON"
+	bl_label = "Import MJBA/MRTR"
 	bl_idname = "glacier.importmjba"
 
 	def execute(self, context):
 		scene = context.scene
 		mytool = scene.my_tool
+		if mytool.mjbaimport_path == "" or mytool.mrtrimport_path == "":
+			BlenderUI.MessageBox("You must import an MJBA and it's corresponding MRTR!", icon = "ERROR")
+			return {'FINISHED'}
 		if mytool.meshpicker == None:
-			message_box.MessageBox("No object selected!", icon = "ERROR")
+			BlenderUI.MessageBox("No object selected!", icon = "ERROR")
 			return {'FINISHED'}
 		if mytool.meshpicker.type != 'ARMATURE':
-			message_box.MessageBox(mytool.meshpicker.name + " does not have an armature!", icon = "ERROR")
+			BlenderUI.MessageBox(mytool.meshpicker.name + " does not have an armature!", icon = "ERROR")
 			return {'FINISHED'}
 		global animation
-		animation.import_mjba(mytool.meshpicker, mytool.mjbaimport_path)
+		glacier_engine.import_animation(mytool.meshpicker, bpy.path.abspath(mytool.mjbaimport_path), bpy.path.abspath(mytool.mrtrimport_path))
 
 		return {'FINISHED'}
 
@@ -154,22 +165,22 @@ class Glacier_ExportMJBA(Operator):
 		scene = context.scene
 		mytool = scene.my_tool
 		if mytool.meshpicker == None:
-			message_box.MessageBox("No object selected!", icon = "ERROR")
+			BlenderUI.MessageBox("No object selected!", icon = "ERROR")
 			return {'FINISHED'}
 		if mytool.meshpicker.type != 'ARMATURE':
-			message_box.MessageBox(mytool.meshpicker.name + " does not have an armature!", icon = "ERROR")
+			BlenderUI.MessageBox(mytool.meshpicker.name + " does not have an armature!", icon = "ERROR")
 			return {'FINISHED'}
 		if mytool.meshpicker.animation_data == None:
-			message_box.MessageBox(mytool.meshpicker.name + " does not have any animation data!", icon = "ERROR")
+			BlenderUI.MessageBox(mytool.meshpicker.name + " does not have any animation data!", icon = "ERROR")
 			return {'FINISHED'}
 		if mytool.meshpicker.animation_data.action == None:
-			message_box.MessageBox(mytool.meshpicker.name + " does not have any animation data action!", icon = "ERROR")
+			BlenderUI.MessageBox(mytool.meshpicker.name + " does not have any animation data action!", icon = "ERROR")
 			return {'FINISHED'}
 		if mytool.meshpicker.animation_data.action.fcurves == None:
-			message_box.MessageBox(mytool.meshpicker.name + " does not have any animation data action fcurves!", icon = "ERROR")
+			BlenderUI.MessageBox(mytool.meshpicker.name + " does not have any animation data action fcurves!", icon = "ERROR")
 			return {'FINISHED'}
 		global animation
-		animation.export_mjba(mytool.meshpicker)
+		glacier_engine.export_animation(mytool.meshpicker)
 
 		return {'FINISHED'}
 
@@ -181,7 +192,7 @@ class Glacier_ExportMRTR(Operator):
 		scene = context.scene
 		mytool = scene.my_tool
 		global animation
-		animation.export_mrtr()
+		glacier_engine.export_animation(mytool.meshpicker)
 
 		return {'FINISHED'}
 
@@ -203,7 +214,9 @@ class Glacier_Import_Panel(Panel):
 
 		layout.prop(mytool, "meshpicker")
 		layout.prop(mytool, "mjbaimport_path")
+		layout.prop(mytool, "mrtrimport_path")
 		layout.operator("glacier.importmjba")
+		layout.separator()
 		layout.label(text="Note: You will first need to import a GLB model from the game.")
 		layout.label(text="Or you can use the supplied template model")
 		layout.label(text="if you are making an animation for the default character rig.")
