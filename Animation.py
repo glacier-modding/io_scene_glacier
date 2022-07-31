@@ -31,24 +31,25 @@ class Animation:
 		self.load_bones()
 		for frame in range(bpy.context.scene.frame_start, bpy.context.scene.frame_end):
 			bpy.context.scene.frame_set(frame)
+			frame_index = frame - 1
 			for pose_bone in self.object.pose.bones:
 				if pose_bone.name in self.pose_bone_to_mrtr_bone:
 					bone = self.pose_bone_to_mrtr_bone[pose_bone.name]
 					if bone in self.bones:
 						print(bone, "in self bones")
 						if self.bones[bone]["dynamic_transforms"] != None:
-							self.object.pose.bones[pose_bone.name].location = (self.bones[bone]["dynamic_transforms"][frame][0],
-																				self.bones[bone]["dynamic_transforms"][frame][1],
-																				self.bones[bone]["dynamic_transforms"][frame][2])
+							self.object.pose.bones[pose_bone.name].location = (self.bones[bone]["dynamic_transforms"][frame_index][0],
+																				self.bones[bone]["dynamic_transforms"][frame_index][1],
+																				self.bones[bone]["dynamic_transforms"][frame_index][2])
 							self.object.pose.bones[pose_bone.name].keyframe_insert(data_path = "location")
-							print(bone, "set transform to", self.bones[bone]["dynamic_transforms"][frame], "on frame", frame)
+							print(bone, "set transform to", self.bones[bone]["dynamic_transforms"][frame_index], "on frame", frame)
 						if self.bones[bone]["dynamic_quaternions"] != None:
-							self.object.pose.bones[pose_bone.name].rotation_quaternion = (-self.bones[bone]["dynamic_quaternions"][frame][3],
-																							self.bones[bone]["dynamic_quaternions"][frame][0],
-																							self.bones[bone]["dynamic_quaternions"][frame][2],
-																							self.bones[bone]["dynamic_quaternions"][frame][1])
+							self.object.pose.bones[pose_bone.name].rotation_quaternion = (-self.bones[bone]["dynamic_quaternions"][frame_index][3],
+																							self.bones[bone]["dynamic_quaternions"][frame_index][0],
+																							self.bones[bone]["dynamic_quaternions"][frame_index][2],
+																							self.bones[bone]["dynamic_quaternions"][frame_index][1])
 							self.object.pose.bones[pose_bone.name].keyframe_insert(data_path = "rotation_quaternion")
-							print(bone, "set transform to", self.bones[bone]["dynamic_quaternions"][frame], "on frame", frame)
+							print(bone, "set transform to", self.bones[bone]["dynamic_quaternions"][frame_index], "on frame", frame)
 
 	def apply_animation(self):
 		'''bpy.ops.object.mode_set(mode='POSE')
