@@ -28,6 +28,12 @@ class Animation:
 		bpy.context.scene.frame_start = 1
 		bpy.context.scene.frame_end = self.mjba.animation.frame_count_1
 		bpy.context.scene.frame_current = 1
+		self.twist_bone_map = { "l_forearm" : "l_foretwist",
+								"l_upperarm" : "luparmtwist",
+								"r_forearm" : "r_foretwist",
+								"r_upperarm" : "ruparmtwist",
+								"l_thigh" : "lthightwist1",
+								"r_thigh" : "rthightwist1" }
 		self.load_bones()
 		for frame in range(bpy.context.scene.frame_start, bpy.context.scene.frame_end):
 			bpy.context.scene.frame_set(frame)
@@ -49,7 +55,17 @@ class Animation:
 																							self.bones[bone]["dynamic_quaternions"][frame_index][2],
 																							self.bones[bone]["dynamic_quaternions"][frame_index][1])
 							self.object.pose.bones[pose_bone.name].keyframe_insert(data_path = "rotation_quaternion")
-							print(bone, "set transform to", self.bones[bone]["dynamic_quaternions"][frame_index], "on frame", frame)
+							print(bone, "set quaternion to", self.bones[bone]["dynamic_quaternions"][frame_index], "on frame", frame)
+							if self.mrtr_bone_to_pose_bone[bone] in self.twist_bone_map:
+								if self.twist_bone_map[self.mrtr_bone_to_pose_bone[bone]] in self.pose_bones:
+									self.object.pose.bones[self.twist_bone_map[self.mrtr_bone_to_pose_bone[bone]]].rotation_quaternion = (-self.bones[bone]["dynamic_quaternions"][frame_index][3],
+																																		self.bones[bone]["dynamic_quaternions"][frame_index][0],
+																																		self.bones[bone]["dynamic_quaternions"][frame_index][2],
+																																		self.bones[bone]["dynamic_quaternions"][frame_index][1])
+									self.object.pose.bones[self.twist_bone_map[self.mrtr_bone_to_pose_bone[bone]]].keyframe_insert(data_path = "rotation_quaternion")
+									print(self.twist_bone_map[self.mrtr_bone_to_pose_bone[bone]], "set quaternion to", self.bones[bone]["dynamic_quaternions"][frame_index], "on frame", frame)
+		for pose_bone in self.object.pose.bones:				
+			print(pose_bone.name)
 
 	def apply_animation(self):
 		'''bpy.ops.object.mode_set(mode='POSE')
@@ -125,6 +141,7 @@ class Animation:
 		bpy.ops.object.mode_set(mode='POSE')
 		self.mrtr_bone_to_pose_bone = {}
 		self.pose_bone_to_mrtr_bone = {}
+		self.pose_bones = []
 		for pose_bone in self.object.pose.bones:
 			print(pose_bone.name.encode())
 			for mrtr_bone in self.mrtr.bone_names.bones:
@@ -132,6 +149,7 @@ class Animation:
 				if pose_bone.name.lower().encode() == mrtr_bone.lower():
 					self.mrtr_bone_to_pose_bone[mrtr_bone] = pose_bone.name
 					self.pose_bone_to_mrtr_bone[pose_bone.name] = mrtr_bone
+			self.pose_bones.append(pose_bone.name)
 		self.mrtr_index_to_mjba_index = {}
 		for used_bone_index in self.mjba.mrtr_bone_map.used_bone_indices:
 			self.mrtr_index_to_mjba_index[used_bone_index] = self.mjba.mrtr_bone_map.mrtr_bone_indices[used_bone_index]
