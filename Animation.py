@@ -37,9 +37,11 @@ class Animation:
 								"l_thigh" : "lthightwist1",
 								"r_thigh" : "rthightwist1" }
 		self.load_bones()
+		output = ""
 		for frame in range(bpy.context.scene.frame_start, bpy.context.scene.frame_end + 1):
 			bpy.context.scene.frame_set(frame)
 			frame_index = frame - 1
+			flag_for_auto_quaternion = False
 			for pose_bone in self.object.pose.bones:
 				if pose_bone.name in self.pose_bone_to_mrtr_bone:
 					bone = self.pose_bone_to_mrtr_bone[pose_bone.name]
@@ -57,64 +59,156 @@ class Animation:
 													self.bones[bone]["dynamic_quaternions"][frame_index][1],
 													self.bones[bone]["dynamic_quaternions"][frame_index][2]))
 							#print(q)
-							if self.bones[bone]["bind_poses_quaternions"] != None:
-								pass
-								'''q = q @ mathutils.Quaternion((self.bones[bone]["bind_poses_quaternions"][3],
+							'''if self.bones[bone]["bind_poses_quaternions"] != None:
+								q = q @ mathutils.Quaternion((self.bones[bone]["bind_poses_quaternions"][3],
 															self.bones[bone]["bind_poses_quaternions"][0],
 															self.bones[bone]["bind_poses_quaternions"][1],
-															self.bones[bone]["bind_poses_quaternions"][2]))
-								q = q @ mathutils.Quaternion((self.bones[bone]["bind_poses_quaternions"][7],
-															self.bones[bone]["bind_poses_quaternions"][4],
-															self.bones[bone]["bind_poses_quaternions"][5],
-															self.bones[bone]["bind_poses_quaternions"][66]))'''
+															self.bones[bone]["bind_poses_quaternions"][2]))'''
 							#q = q @ mathutils.Quaternion((0.0, 0.0, 1.0), -math.radians(45.0))
-							print(q)
-							#rotation_quaternion = q
+							#print(q)
 							quaternion_to_try_index = 0
 							done = False
-							for a in range(2):
+							for a in range(8):
 								if not done:
 									if a == 0:
 										self.q1 = q.w
 									elif a == 1:
 										self.q1 = -q.w
-									for b in range(2):
+									elif a == 2:
+										self.q1 = q.x
+									elif a == 3:
+										self.q1 = -q.x
+									elif a == 4:
+										self.q1 = q.y
+									elif a == 5:
+										self.q1 = -q.y
+									elif a == 6:
+										self.q1 = q.z
+									elif a == 7:
+										self.q1 = -q.z
+									for b in range(8):
 										if not done:
 											if b == 0:
 												self.q2 = q.x
 											elif b == 1:
 												self.q2 = -q.x
-											for c in range(2):
+											elif b == 2:
+												self.q2 = q.y
+											elif b == 3:
+												self.q2 = -q.y
+											elif b == 4:
+												self.q2 = q.z
+											elif b == 5:
+												self.q2 = -q.z
+											elif b == 6:
+												self.q2 = q.w
+											elif b == 7:
+												self.q2 = -q.w
+											for c in range(8):
 												if not done:
 													if c == 0:
-														self.q3 = q.z
+														self.q3 = q.y
 													elif c == 1:
+														self.q3 = -q.y
+													elif c == 2:
+														self.q3 = q.z
+													elif c == 3:
 														self.q3 = -q.z
-													for d in range(2):
+													elif c == 4:
+														self.q3 = q.w
+													elif c == 5:
+														self.q3 = -q.w
+													elif c == 6:
+														self.q3 = q.x
+													elif c == 7:
+														self.q3 = -q.x
+													for d in range(8):
 														if not done:
 															if d == 0:
-																self.q4 = q.y
+																self.q4 = q.z
 															elif d == 1:
+																self.q4 = -q.z
+															elif d == 2:
+																self.q4 = q.w
+															elif d == 3:
+																self.q4 = -q.w
+															elif d == 4:
+																self.q4 = q.x
+															elif d == 5:
+																self.q4 = -q.x
+															elif d == 6:
+																self.q4 = q.y
+															elif d == 7:
 																self.q4 = -q.y
 															if quaternion_to_try == quaternion_to_try_index:
-																if a == 0:
-																	print("q.w")
-																elif a == 1:
-																	print("-q.w")
-																if b == 0:
-																	print("q.x")
-																elif b == 1:
-																	print("-q.x")
-																if c == 0:
-																	print("q.z")
-																elif c == 1:
-																	print("-q.z")
-																if d == 0:
-																	print("q.y")
-																elif d == 1:
-																	print("-q.y")
 																rotation_quaternion = (self.q1, self.q2, self.q3, self.q4)
-																done = True
+																if frame_index == 0 and not flag_for_auto_quaternion:
+																	if a == 0:
+																		output += "q.w"
+																	elif a == 1:
+																		output += "-q.w"
+																	elif a == 2:
+																		output += "q.x"
+																	elif a == 3:
+																		output += "-q.x"
+																	elif a == 4:
+																		output += "q.y"
+																	elif a == 5:
+																		output += "-q.y"
+																	elif a == 6:
+																		output += "q.z"
+																	elif a == 7:
+																		output += "-q.z"
+																	if b == 0:
+																		output += ", q.x"
+																	elif b == 1:
+																		output += ", -q.x"
+																	elif b == 2:
+																		output += ", q.y"
+																	elif b == 3:
+																		output += ", -q.y"
+																	elif b == 4:
+																		output += ", q.z"
+																	elif b == 5:
+																		output += ", -q.z"
+																	elif b == 6:
+																		output += ", q.w"
+																	elif b == 7:
+																		output += ", -q.w"
+																	if c == 0:
+																		output += ", q.y"
+																	elif c == 1:
+																		output += ", -q.y"
+																	elif c == 2:
+																		output += ", q.z"
+																	elif c == 3:
+																		output += ", -q.z"
+																	elif c == 4:
+																		output += ", q.w"
+																	elif c == 5:
+																		output += ", -q.w"
+																	elif c == 6:
+																		output += ", q.x"
+																	elif c == 7:
+																		output += ", -q.x"
+																	if d == 0:
+																		output += " q.z"
+																	elif d == 1:
+																		output += " -q.z"
+																	elif d == 2:
+																		output += " q.w"
+																	elif d == 3:
+																		output += " -q.w"
+																	elif d == 4:
+																		output += " q.x"
+																	elif d == 5:
+																		output += " -q.x"
+																	elif d == 6:
+																		output += " q.y"
+																	elif d == 7:
+																		output += " -q.y"
+																	done = True
+																	flag_for_auto_quaternion = True
 															quaternion_to_try_index += 1
 							self.object.pose.bones[pose_bone.name].rotation_quaternion = rotation_quaternion
 							self.object.pose.bones[pose_bone.name].keyframe_insert(data_path = "rotation_quaternion")
@@ -124,6 +218,7 @@ class Animation:
 									self.object.pose.bones[self.twist_bone_map[self.mrtr_bone_to_pose_bone[bone]]].rotation_quaternion = rotation_quaternion
 									self.object.pose.bones[self.twist_bone_map[self.mrtr_bone_to_pose_bone[bone]]].keyframe_insert(data_path = "rotation_quaternion")
 									#print(self.twist_bone_map[self.mrtr_bone_to_pose_bone[bone]], "set quaternion to", self.bones[bone]["dynamic_quaternions"][frame_index], "on frame", frame)
+		print("Trying quaternion: (", output, ")")
 		for pose_bone in self.object.pose.bones:				
 			#print(pose_bone.name)
 			pass
@@ -204,9 +299,9 @@ class Animation:
 		self.pose_bone_to_mrtr_bone = {}
 		self.pose_bones = []
 		for pose_bone in self.object.pose.bones:
-			print(pose_bone.name.encode())
+			#print(pose_bone.name.encode())
 			for mrtr_bone in self.mrtr.bone_names.bones:
-				print(mrtr_bone)
+				#print(mrtr_bone)
 				if pose_bone.name.lower().encode() == mrtr_bone.lower():
 					self.mrtr_bone_to_pose_bone[mrtr_bone] = pose_bone.name
 					self.pose_bone_to_mrtr_bone[pose_bone.name] = mrtr_bone
@@ -215,9 +310,9 @@ class Animation:
 		for used_bone_index in self.mjba.mrtr_bone_map.used_bone_indices:
 			self.mrtr_index_to_mjba_index[used_bone_index] = self.mjba.mrtr_bone_map.mrtr_bone_indices[used_bone_index]
 		self.bones = {}
-		print(self.mrtr_index_to_mjba_index)
-		print(self.mrtr_bone_to_pose_bone)
-		print(self.pose_bone_to_mrtr_bone)
+		#print(self.mrtr_index_to_mjba_index)
+		#print(self.mrtr_bone_to_pose_bone)
+		#print(self.pose_bone_to_mrtr_bone)
 		static_quaternion_index = 0
 		static_transform_index = 0
 		static_bind_poses_index = 0
@@ -299,4 +394,4 @@ class Animation:
 					dynamic_transform[2] *= self.mjba.animation.transform_scale[2]
 					self.bones[bone]["dynamic_transforms"].append(dynamic_transform)
 					static_transform_index += 1
-		print(self.bones)
+		#print(self.bones)
