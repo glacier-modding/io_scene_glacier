@@ -1,7 +1,7 @@
 import bpy
 from .BinaryReader import BinaryReader
 from .MjbaReader import MjbaReader
-from .MrtrReader import MrtrReader
+from .MrtrReader import Mrtr
 from . import BlenderUI
 import math
 import mathutils
@@ -16,8 +16,9 @@ class Animation:
 		with open(self.mjba_path, "rb") as f:
 			self.mjba = MjbaReader(BinaryReader(f))
 		with open(self.mrtr_path, "rb") as f:
-			self.mrtr = MrtrReader(BinaryReader(f))
-		if self.mjba.mrtr_bone_map.mrtr_bone_count != self.mrtr.bone_map.bone_count:			
+			self.mrtr = Mrtr()
+			self.mrtr.read(BinaryReader(f))
+		if self.mjba.mrtr_bone_map.mrtr_bone_count != len(self.mrtr.hierarchy.bone_parents):			
 			BlenderUI.MessageBox("The MJBA and MRTR have mismatched bone counts!", icon = "ERROR")
 			return
 		bpy.ops.object.mode_set(mode='POSE')
@@ -241,6 +242,8 @@ class Animation:
 							#rotation_quaternion = (q.w, q.x, q.y, q.z)
 							quaternion_to_try_index = 0
 							done = False
+
+							#holy shit, what happened here?
 							for a in range(8):
 								if not done:
 									if a == 0:
@@ -473,7 +476,7 @@ class Animation:
 		self.pose_bones = []
 		for pose_bone in self.object.pose.bones:
 			#print(pose_bone.name.encode())
-			for mrtr_bone in self.mrtr.bone_names.bones:
+			for mrtr_bone in self.mrtr.bone_name_map.data:
 				#print(mrtr_bone)
 				if pose_bone.name.lower().encode() == mrtr_bone.lower():
 					self.mrtr_bone_to_pose_bone[mrtr_bone] = pose_bone.name
@@ -490,7 +493,7 @@ class Animation:
 		static_transform_index = 0
 		static_bind_poses_index = 0
 		for used_bone_index in self.mjba.mrtr_bone_map.used_bone_indices:
-			bone = self.mrtr.bone_names.bones[used_bone_index]
+			bone = self.mrtr.bone_name_map.data[used_bone_index]
 			self.bones[bone] = {}
 			self.bones[bone]["static_quaternion"] = None
 			self.bones[bone]["dynamic_quaternions"] = None
@@ -544,7 +547,7 @@ class Animation:
 		dynamic_transform_index = 0
 		for frame in range(self.mjba.animation.frame_count_1):
 			for used_bone_index in self.mjba.mrtr_bone_map.used_bone_indices:
-				bone = self.mrtr.bone_names.bones[used_bone_index]
+				bone = self.mrtr.bone_name_map.data[used_bone_index]
 				if self.bones[bone]["static_quaternion"] == None:
 					if self.bones[bone]["dynamic_quaternions"] == None:
 						self.bones[bone]["dynamic_quaternions"] = []
