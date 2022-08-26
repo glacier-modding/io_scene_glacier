@@ -5,6 +5,9 @@ class BinaryReader:
 	def __init__(self, stream):
 		self.file = stream
 
+	def close(self):
+		self.file.close()
+
 	def seek(self, position):
 		self.file.seek(position)
 
@@ -14,6 +17,7 @@ class BinaryReader:
 	def tell(self):
 		return self.file.tell()
 
+	#reading
 	def readHex(self, length):
 		hexdata = self.file.read(length)
 		hexstr = ''
@@ -63,7 +67,7 @@ class BinaryReader:
 	def readUByteQuantizedVec(self, size):
 		vec = [0] * size
 		for i in range(size):
-			vec[i] = ((self.readUByte() * float(2.0)) / float(255.0)) + float(1.0)
+			vec[i] = ((self.readUByte() * 2.0) / 255.0) - 1.0
 		return vec
 
 	def readUByteVec(self, size):
@@ -121,3 +125,77 @@ class BinaryReader:
 			if c == b'\x00':
 				return b"".join(string)
 			string.append(c)
+
+	#writing
+	def align(self, num, bit=0x0):
+		padding = (num - (self.tell() % num)) % num
+		self.writeHex(bytes([bit] * padding))
+
+	def writeHex(self, bytes):
+		self.file.write(bytes)
+
+	def writeInt64(self, val):
+		self.file.write(val.to_bytes(8, byteorder='little', signed=True))
+
+	def writeUInt64(self, val):
+		self.file.write(val.to_bytes(8, byteorder='little', signed=False))
+
+	def writeInt(self, val):
+		self.file.write(val.to_bytes(4, byteorder='little', signed=True))
+
+	def writeUInt(self, val):
+		self.file.write(val.to_bytes(4, byteorder='little', signed=False))
+
+	def writeShort(self, val):
+		self.file.write(val.to_bytes(2, byteorder='little', signed=True))
+
+	def writeUShort(self, val):
+		self.file.write(val.to_bytes(2, byteorder='little', signed=False))
+
+	def writeByte(self, val):
+		self.file.write(val.to_bytes(1, byteorder='little', signed=True))
+
+	def writeUByte(self, val):
+		self.file.write(val.to_bytes(1, byteorder='little', signed=False))
+
+	def writeFloat(self, val):
+		self.file.write(struct.pack('f', val))
+
+	def writeShortVec(self, vec):
+		for val in vec:
+			 self.writeShort(val)
+
+	def writeShortQuantizedVec(self, vec, scale, bias):
+		for i in range(len(vec)):
+			self.writeShort(int(round(((vec[i] - bias[i]) * 0x7FFF) / scale[i])))
+
+	def writeUByteQuantizedVec(self, vec):
+		for val in vec:
+			self.writeUByte(int(round(((vec[i] + 1) * 255) / 2)))
+
+	def writeUByteVec(self, vec):
+		for val in vec:
+			self.writeUByte(val)
+
+	def writeUShortFromFloatVec(self, vec):
+		for val in vec:
+			self.writeUShort(int(round(((val + 1) * 0xFFFF) / 2)))
+
+	def writeFloatVec(self, vec):
+		for val in vec:
+			self.writeFloat(val)
+
+	def writeUBytesFromBitBoolArray(self, vec):
+		print("Attempted to use writeUBytesFromBitBoolArray, but this function is not implemented yet!")
+
+	def writeUIntVec(self, vec):
+		for val in vec:
+			self.writeUInt(val)
+
+	def writeIntVec(self, vec):
+		for val in vec:
+			self.writeInt(val)
+
+	def writeString(self, string):
+		self.writeHex(string)
+		self.writeUByte(0)
