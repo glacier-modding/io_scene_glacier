@@ -40,6 +40,7 @@ import bpy
 from .GlacierEngine import GlacierEngine
 from . import BlenderUI
 from . import file_prim
+from . import file_vtxd
 
 from bpy.props import (StringProperty,
 					   BoolProperty,
@@ -263,7 +264,8 @@ def ShowMessageBox(message = "", title = "Message Box", icon = 'INFO'):
 	
 
 modules = [
-    file_prim
+    file_prim,
+	file_vtxd
 ]
 
 classes = (

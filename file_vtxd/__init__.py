@@ -9,28 +9,30 @@ from bpy.props import (
         StringProperty
         )
 
-class ImportPRIM(bpy.types.Operator, ImportHelper):
-    """Load a PRIM file"""
-    bl_idname = "import_mesh.prim"
-    bl_label = "Import PRIM Mesh"
-    filename_ext = ".prim"
+class ImportVTXD(bpy.types.Operator, ImportHelper):
+    """Load a VTXD file"""
+    bl_idname = "import_mesh.vtxd"
+    bl_label = "Import VTXD Mesh"
+    filename_ext = ".vtxd"
     filter_glob = StringProperty(
-        default="*.prim",
+        default="*.vtxd",
         options={'HIDDEN'},
     )
 
     filepath: StringProperty(
-        name="PRIM",
-        description="Set path for the PRIM file",
+        name="VTXD",
+        description="Set path for the VTXD file",
         subtype="FILE_PATH"
     )
 
     def execute(self, context):
-        from . import import_prim
+        from . import bl_import
         keywords = self.as_keywords(ignore=(
             'filter_glob',
         ))
-        meshes = import_prim.load_prim(self, context, **keywords)
+
+        meshes = bl_import.load_vtxd(self, context, **keywords)
+
         if not meshes:
             return {'CANCELLED'}
 
@@ -42,25 +44,25 @@ class ImportPRIM(bpy.types.Operator, ImportHelper):
         layer.update()
         return {'FINISHED'}
 
-class ExportPRIM(bpy.types.Operator, ExportHelper):
-    """Export to a PRIM file"""
-    bl_idname = 'export_mesh.prim'
-    bl_label = 'Export PRIM Mesh'
+class ExportVTXD(bpy.types.Operator, ExportHelper):
+    """Export to a VTXD file"""
+    bl_idname = 'export_mesh.vtxd'
+    bl_label = 'Export VTXD Mesh'
     check_extension = True
-    filename_ext = '.prim'
-    filter_glob: StringProperty(default='*.prim', options={'HIDDEN'})
+    filename_ext = '.vtxd'
+    filter_glob: StringProperty(default='*.vtxd', options={'HIDDEN'})
 
     def execute(self, context):
-        from . import export_prim
+        from . import bl_export
         keywords = self.as_keywords(ignore=(
             'check_existing',
             'filter_glob',
         ))
-        return export_prim.save_prim(self, context, **keywords)
+        return bl_export.save_vtxd(self, context, **keywords)
 
 classes = [
-    ImportPRIM,
-    ExportPRIM
+    ImportVTXD,
+    ExportVTXD
 ]
 
 def register():
@@ -77,9 +79,9 @@ def unregister():
     bpy.types.TOPBAR_MT_file_export.remove(menu_func_export)
 
 def menu_func_import(self, context):
-    self.layout.operator(ImportPRIM.bl_idname, text="Hitman RenderPrimitve (.prim)")
+    self.layout.operator(ImportVTXD.bl_idname, text="Hitman VertexData (.vtxd)")
 def menu_func_export(self, context):
-    self.layout.operator(ExportPRIM.bl_idname, text="Hitman RenderPrimitve (.prim)")
+    self.layout.operator(ExportVTXD.bl_idname, text="Hitman VertexData (.vtxd)")
 
 if __name__ == '__main__':
     register()
