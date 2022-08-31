@@ -1,7 +1,7 @@
 import bpy
-from .BinaryReader import BinaryReader
-from .MjbaReader import MjbaReader
-from .MrtrReader import Mrtr
+from .io_binary import BinaryReader
+from .file_mjba.MjbaReader import MjbaReader
+from .file_mrtr.format import MorphemeRig
 from . import BlenderUI
 import math
 import mathutils
