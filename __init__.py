@@ -39,6 +39,7 @@ bl_info = {
 import bpy
 from .GlacierEngine import GlacierEngine
 from . import BlenderUI
+from . import file_prim
 
 from bpy.props import (StringProperty,
 					   BoolProperty,
@@ -260,6 +261,11 @@ def ShowMessageBox(message = "", title = "Message Box", icon = 'INFO'):
 
     bpy.context.window_manager.popup_menu(draw, title = title, icon = icon)
 	
+
+modules = [
+    file_prim
+]
+
 classes = (
 	MyProperties,
 	Glacier_ImportMJBA,
@@ -271,6 +277,10 @@ classes = (
 
 def register():
 	from bpy.utils import register_class
+
+	for module in modules:
+		module.register()
+
 	for cls in classes:
 		register_class(cls)
 
@@ -278,6 +288,10 @@ def register():
 
 def unregister():
 	from bpy.utils import unregister_class
+
+	for module in reversed(modules):
+		module.unregister()
+
 	for cls in reversed(classes):
 		unregister_class(cls)
 	del bpy.types.Scene.my_tool

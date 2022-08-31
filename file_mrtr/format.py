@@ -1,7 +1,7 @@
 import os
 import sys
 
-class Mrtr:
+class MorphemeRig:
 	def __init__(self):
 		self.blend_frame_orientation = [0, 0, 0, 1]
 		self.trajectory_bone_index = 0
@@ -142,7 +142,7 @@ class StringTable:
 
 		br.seek(data_offset) #the intended way of reading this is with the offsets array, but this is faster
 		for i in range(num_entries):
-			self.data.append(br.readString())
+			self.data.append(br.readCString())
 
 	def write(self, br):
 		base_offset = br.tell()
@@ -173,6 +173,6 @@ class StringTable:
 
 
 		for str in self.data:
-			br.writeString(str)
+			br.writeCString(str)
 
 		br.align(4, 0xCD)

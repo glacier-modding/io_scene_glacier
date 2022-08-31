@@ -67,7 +67,7 @@ class BinaryReader:
 	def readUByteQuantizedVec(self, size):
 		vec = [0] * size
 		for i in range(size):
-			vec[i] = ((self.readUByte() * 2.0) / 255.0) - 1.0
+			vec[i] = ((self.readUByte() * 2) / 255) - 1
 		return vec
 
 	def readUByteVec(self, size):
@@ -118,7 +118,15 @@ class BinaryReader:
 			vec[i] = self.readInt()
 		return vec
 
-	def readString(self):
+	def readString(self, length):
+		string = []
+		for char in range(length):
+			c = self.file.read(1)
+			if c != b'\x00':
+				string.append(c)
+		return b"".join(string)
+
+	def readCString(self):
 		string = []
 		while True:
 			c = self.file.read(1)
@@ -147,7 +155,11 @@ class BinaryReader:
 		self.file.write(val.to_bytes(4, byteorder='little', signed=False))
 
 	def writeShort(self, val):
-		self.file.write(val.to_bytes(2, byteorder='little', signed=True))
+		#try:
+			self.file.write(val.to_bytes(2, byteorder='little', signed=True))
+		#except OverflowError as err:
+		#	print('Overflowed trying to convert ' + str(val) + " to a short",  err)
+		#	raise Exception("Error")
 
 	def writeUShort(self, val):
 		self.file.write(val.to_bytes(2, byteorder='little', signed=False))
@@ -167,11 +179,21 @@ class BinaryReader:
 
 	def writeShortQuantizedVec(self, vec, scale, bias):
 		for i in range(len(vec)):
+			print(vec[i])
+			print(bias[i])
+			print(scale[i])
+			print(vec[i] - bias[i])
+			print((vec[i] - bias[i]) * 0x7FFF)
+			print(((vec[i] - bias[i]) * 0x7FFF) / scale[i])
+			print(round(((vec[i] - bias[i]) * 0x7FFF) / scale[i]))
+			print(int(round(((vec[i] - bias[i]) * 0x7FFF) / scale[i])))
+			print()
+			
 			self.writeShort(int(round(((vec[i] - bias[i]) * 0x7FFF) / scale[i])))
 
 	def writeUByteQuantizedVec(self, vec):
 		for val in vec:
-			self.writeUByte(int(round(((vec[i] + 1) * 255) / 2)))
+			self.writeUByte(int(round(((val + 1) * 255) / 2)))
 
 	def writeUByteVec(self, vec):
 		for val in vec:
@@ -196,6 +218,23 @@ class BinaryReader:
 		for val in vec:
 			self.writeInt(val)
 
-	def writeString(self, string):
+	def writeCString(self, string):
+		if(len(string) > 0):
+			self.writeHex(string)
+			self.writeUByte(0)
+	
+	def writeString(self, string, length):
 		self.writeHex(string)
-		self.writeUByte(0)
+		self.writeUByteVec([0] * (length - len(string)))
+
+	def IOI_round(self, float):
+        #please upgrade to a modulo solution
+		byte_const = 1 / 255
+		rounded_byte = 0
+		byte = int(float / byte_const)
+		if(abs(float - (byte * byte_const)) > abs(float - ((byte + 1) * byte_const))):
+			rounded_byte = byte
+		else:
+			rounded_byte = byte + 1
+
+		return rounded_byte -1
