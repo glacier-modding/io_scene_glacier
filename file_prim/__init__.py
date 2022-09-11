@@ -46,7 +46,7 @@ class ImportPRIM(bpy.types.Operator, ImportHelper):
     )
 
     def execute(self, context):
-        from . import import_prim
+        from . import bl_import_prim
         from ..file_borg import format as borg
         keywords = self.as_keywords(ignore=(
             'filter_glob',
@@ -80,7 +80,7 @@ class ExportPRIM(bpy.types.Operator, ExportHelper):
     filter_glob: StringProperty(default='*.prim', options={'HIDDEN'})
 
     def execute(self, context):
-        from . import export_prim
+        from . import bl_export_prim
         keywords = self.as_keywords(ignore=(
             'check_existing',
             'filter_glob',
