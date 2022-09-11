@@ -1,1 +1,6 @@
 __pycache__/
+.idea/
+
+#debug files
+output.txt
+test.py

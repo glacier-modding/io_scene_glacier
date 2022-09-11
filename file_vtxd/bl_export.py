@@ -5,19 +5,20 @@ import mathutils as mu
 import numpy as np
 
 from bpy.props import (BoolProperty,
-    FloatProperty,
-    StringProperty,
-    EnumProperty,
-    )
+                       FloatProperty,
+                       StringProperty,
+                       EnumProperty,
+                       )
 from bpy_extras.io_utils import (ImportHelper,
-    ExportHelper,
-    unpack_list,
-    unpack_face_list,
-    axis_conversion,
-    )
+                                 ExportHelper,
+                                 unpack_list,
+                                 unpack_face_list,
+                                 axis_conversion,
+                                 )
 
 from . import format
 from .. import io_binary
+
 
 def __get_colors(mesh, color_i):
     colors = np.empty(len(mesh.loops) * 4, dtype=np.float32)
@@ -26,6 +27,7 @@ def __get_colors(mesh, color_i):
     colors = colors.reshape(len(mesh.loops), 4)
     # colors are already linear, no need to switch color space
     return colors
+
 
 def save_vtxd(operator, context, filepath):
     # Export the selected mesh
@@ -47,6 +49,7 @@ def save_vtxd(operator, context, filepath):
     bre.close()
 
     return {'FINISHED'}
+
 
 def save_vtxd_sub_mesh(blender_obj):
     mesh = blender_obj.to_mesh()
@@ -82,14 +85,14 @@ def save_vtxd_sub_mesh(blender_obj):
     colors[:, 2] = prim_dots['colorB']
     colors[:, 3] = prim_dots['colorA']
 
-
     for i in range(len(colors)):
         color = (colors[i] * 255).astype("uint8").tolist()
         sub_mesh.vertexColors.append(color)
 
     return sub_mesh
 
-#TODO: currently breaks original mesh. please fix
+
+# TODO: currently breaks original mesh. please fix
 def triangulate_object(obj):
     me = obj.data
     # Get a BMesh representation

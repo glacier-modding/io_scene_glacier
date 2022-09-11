@@ -1,13 +1,16 @@
 from enum import IntEnum
 import sys
+import abc
+
 
 class PrimObjectSubtype(IntEnum):
-    Standard =    0
-    Linked =      1
-    Weighted =    2
+    Standard = 0
+    Linked = 1
+    Weighted = 2
     Standarduv2 = 3
     Standarduv3 = 4
     Standarduv4 = 5
+
 
 class PrimType(IntEnum):
     unknown = 0
@@ -18,15 +21,17 @@ class PrimType(IntEnum):
     Shape = 5
     Unused = 6
 
+
 class PrimMeshClothId:
     def __init__(self, value):
         self.bitfield = value
 
-    def isSmoll(self): #thank PawRep for this amazing name :)
+    def isSmoll(self):  # thank PawRep for this amazing name :)
         return self.bitfield & 0x80 == 0x80
 
     def write(self, br):
         br.writeUInt(self.bitfield)
+
 
 class PrimObjectHeaderPropertyFlags:
     def __init__(self, val):
@@ -34,14 +39,19 @@ class PrimObjectHeaderPropertyFlags:
 
     def hasBones(self):
         return self.bitfield & 0b1 == 1
+
     def hasFrames(self):
         return self.bitfield & 0b10 == 2
+
     def isLinkedObject(self):
         return self.bitfield & 0b100 == 4
+
     def isWeightedObject(self):
         return self.bitfield & 0b1000 == 8
+
     def useBounds(self):
         return self.bitfield & 0b100000000 == 128
+
     def hasHighResolution(self):
         return self.bitfield & 0b1000000000 == 256
 
@@ -49,13 +59,14 @@ class PrimObjectHeaderPropertyFlags:
         br.writeUInt(self.bitfield)
 
     def toString(self):
-        return ( "Object Header property flags:\n" +
-            "\thas bones:\t\t"  +           str(self.hasBones()) + "\n" +
-            "\thas frames:\t\t" +           str(self.hasFrames()) + "\n" +
-            "\tis linked object:\t" +       str(self.isLinkedObject()) + "\n" +
-            "\tis weighted object:\t" +     str(self.isWeightedObject()) + "\n" +
-            "\tuse bounds:\t\t" +           str(self.useBounds()) + "\n" +
-            "\thas high resolution:\t" +    str(self.hasHighResolution()) + "\n")
+        return ("Object Header property flags:\n" +
+                "\thas bones:\t\t" + str(self.hasBones()) + "\n" +
+                "\thas frames:\t\t" + str(self.hasFrames()) + "\n" +
+                "\tis linked object:\t" + str(self.isLinkedObject()) + "\n" +
+                "\tis weighted object:\t" + str(self.isWeightedObject()) + "\n" +
+                "\tuse bounds:\t\t" + str(self.useBounds()) + "\n" +
+                "\thas high resolution:\t" + str(self.hasHighResolution()) + "\n")
+
 
 class PrimObjectPropertyFlags:
     def __init__(self, value):
@@ -63,16 +74,22 @@ class PrimObjectPropertyFlags:
 
     def isXaxisLocked(self):
         return self.bitfield & 0b1 == 1
+
     def isYaxisLocked(self):
         return self.bitfield & 0b10 == 2
+
     def isZaxisLocked(self):
         return self.bitfield & 0b100 == 4
+
     def isHighResolution(self):
         return self.bitfield & 0b1000 == 8
+
     def hasPs3Edge(self):
         return self.bitfield & 0b10000 == 16
+
     def useColor1(self):
         return self.bitfield & 0b100000 == 32
+
     def hasNoPhysicsProp(self):
         return self.bitfield & 0b1000000 == 64
 
@@ -84,14 +101,15 @@ class PrimObjectPropertyFlags:
         br.writeUByte(self.bitfield)
 
     def toString(self):
-        return ( "Object property flags:\n" +
-            "\tX axis locked:\t\t"  +           str(self.isXaxisLocked()) + "\n" +
-            "\tY axis locked:\t\t"  +           str(self.isYaxisLocked()) + "\n" +
-            "\tZ axis locked:\t\t"  +           str(self.isZaxisLocked()) + "\n" +
-            "\tis high resolution:\t" +         str(self.isHighResolution()) + "\n" +
-            "\thas ps3 edge:\t\t" +             str(self.hasPs3Edge()) + "\n" +
-            "\tuses color1:\t\t" +              str(self.useColor1()) + "\n" +
-            "\thas no physics props:\t" +       str(self.hasNoPhysicsProp()) + "\n")
+        return ("Object property flags:\n" +
+                "\tX axis locked:\t\t" + str(self.isXaxisLocked()) + "\n" +
+                "\tY axis locked:\t\t" + str(self.isYaxisLocked()) + "\n" +
+                "\tZ axis locked:\t\t" + str(self.isZaxisLocked()) + "\n" +
+                "\tis high resolution:\t" + str(self.isHighResolution()) + "\n" +
+                "\thas ps3 edge:\t\t" + str(self.hasPs3Edge()) + "\n" +
+                "\tuses color1:\t\t" + str(self.useColor1()) + "\n" +
+                "\thas no physics props:\t" + str(self.hasNoPhysicsProp()) + "\n")
+
 
 class BoxColiEntry:
     def __init__(self):
@@ -113,8 +131,8 @@ class BoxColi:
         self.box_entries = []
 
     def read(self, br):
-        num_chunks          = br.readUShort()
-        self.tri_per_chunk  = br.readUShort()
+        num_chunks = br.readUShort()
+        self.tri_per_chunk = br.readUShort()
         self.box_entries = [-1] * num_chunks
         for entry in range(num_chunks):
             self.box_entries[entry] = BoxColiEntry()
@@ -127,6 +145,7 @@ class BoxColi:
             entry.write(br)
         br.align(4)
 
+
 class Vertex:
     def __init__(self):
         self.position = [0] * 4
@@ -135,7 +154,7 @@ class Vertex:
         self.normal = [1] * 4
         self.tangent = [1] * 4
         self.bitangent = [1] * 4
-        self.uv = [[0]*2]
+        self.uv = [[0] * 2]
         self.color = [0xFF] * 4
 
 
@@ -150,7 +169,7 @@ class VertexBuffer:
             self.vertices[vert] = Vertex()
 
         for vert in range(num_vertices):
-            if(mesh.prim_object.properties.isHighResolution()):
+            if (mesh.prim_object.properties.isHighResolution()):
                 self.vertices[vert].position[0] = (br.readFloat() * mesh.pos_scale[0]) + mesh.pos_bias[0]
                 self.vertices[vert].position[1] = (br.readFloat() * mesh.pos_scale[1]) + mesh.pos_bias[1]
                 self.vertices[vert].position[2] = (br.readFloat() * mesh.pos_scale[2]) + mesh.pos_bias[2]
@@ -158,7 +177,7 @@ class VertexBuffer:
             else:
                 self.vertices[vert].position = br.readShortQuantizedVec(4, mesh.pos_scale, mesh.pos_bias)
 
-        if(flags.isWeightedObject()):
+        if (flags.isWeightedObject()):
             for vert in range(num_vertices):
                 self.vertices[vert].weight[0] = br.readUByte() / 255
                 self.vertices[vert].weight[1] = br.readUByte() / 255
@@ -176,15 +195,16 @@ class VertexBuffer:
                 self.vertices[vert].joint[5] = br.readUByte()
 
         for vert in range(num_vertices):
-            self.vertices[vert].normal    = br.readUByteQuantizedVec(4)
-            self.vertices[vert].tangent   = br.readUByteQuantizedVec(4)
+            self.vertices[vert].normal = br.readUByteQuantizedVec(4)
+            self.vertices[vert].tangent = br.readUByteQuantizedVec(4)
             self.vertices[vert].bitangent = br.readUByteQuantizedVec(4)
             self.vertices[vert].uv = [0] * num_uvchannels
             for uv in range(num_uvchannels):
-                self.vertices[vert].uv[uv] = br.readShortQuantizedVec(2, mesh.tex_scale_bias[0:2], mesh.tex_scale_bias[2:4])
+                self.vertices[vert].uv[uv] = br.readShortQuantizedVec(2, mesh.tex_scale_bias[0:2],
+                                                                      mesh.tex_scale_bias[2:4])
 
-        if(not mesh.prim_object.properties.useColor1() or flags.isWeightedObject()):
-            if(not sub_mesh_flags.useColor1()):
+        if (not mesh.prim_object.properties.useColor1() or flags.isWeightedObject()):
+            if (not sub_mesh_flags.useColor1()):
                 for vert in range(num_vertices):
                     self.vertices[vert].color = br.readUByteVec(4)
             else:
@@ -201,17 +221,17 @@ class VertexBuffer:
             num_uvchannels = len(self.vertices[0].uv)
         else:
             num_uvchannels = 0
-        #positions
+        # positions
         for vert in range(num_vertices):
-            if(mesh.prim_object.properties.isHighResolution()):
+            if (mesh.prim_object.properties.isHighResolution()):
                 br.writeFloat((self.vertices[vert].position[0] - mesh.pos_bias[0]) / mesh.pos_scale[0])
                 br.writeFloat((self.vertices[vert].position[1] - mesh.pos_bias[1]) / mesh.pos_scale[1])
                 br.writeFloat((self.vertices[vert].position[2] - mesh.pos_bias[2]) / mesh.pos_scale[2])
             else:
                 br.writeShortQuantizedVec(self.vertices[vert].position, mesh.pos_scale, mesh.pos_bias)
 
-        #joints and weights
-        if(flags.isWeightedObject()):
+        # joints and weights
+        if (flags.isWeightedObject()):
             for vert in range(num_vertices):
                 br.writeUByte(br.IOI_round(self.vertices[vert].weight[0]))
                 br.writeUByte(br.IOI_round(self.vertices[vert].weight[1]))
@@ -228,20 +248,20 @@ class VertexBuffer:
                 br.writeUByte(self.vertices[vert].joint[4])
                 br.writeUByte(self.vertices[vert].joint[5])
 
-        #ntb + uv
+        # ntb + uv
         for vert in range(num_vertices):
             br.writeUByteQuantizedVec(self.vertices[vert].normal)
             br.writeUByteQuantizedVec(self.vertices[vert].tangent)
             br.writeUByteQuantizedVec(self.vertices[vert].bitangent)
             for uv in range(num_uvchannels):
-                br.writeShortQuantizedVec(self.vertices[vert].uv[uv], mesh.tex_scale_bias[0:2], mesh.tex_scale_bias[2:4])
+                br.writeShortQuantizedVec(self.vertices[vert].uv[uv], mesh.tex_scale_bias[0:2],
+                                          mesh.tex_scale_bias[2:4])
 
-        #color
-        if(not mesh.prim_object.properties.useColor1() or flags.isWeightedObject()):
-            if(not sub_mesh_flags.useColor1() or flags.isWeightedObject()):
+        # color
+        if (not mesh.prim_object.properties.useColor1() or flags.isWeightedObject()):
+            if (not sub_mesh_flags.useColor1() or flags.isWeightedObject()):
                 for vert in range(num_vertices):
                     br.writeUByteVec(self.vertices[vert].color)
-
 
 
 class PrimSubMesh:
@@ -251,7 +271,7 @@ class PrimSubMesh:
         self.num_indices = 0
         self.num_additional_indices = 0
         self.num_uvchannels = 1
-        self.dummy1 = bytes([0,0,0])
+        self.dummy1 = bytes([0, 0, 0])
         self.vertexBuffer = VertexBuffer()
         self.indices = [0] * 0
         self.collision = BoxColi()
@@ -260,31 +280,32 @@ class PrimSubMesh:
     def read(self, br, mesh, flags):
         self.prim_object.read(br)
 
-        num_vertices =                br.readUInt()
-        vertices_offset =             br.readUInt()
-        num_indices =                 br.readUInt()
-        num_additional_indices =      br.readUInt()
-        indices_offset =              br.readUInt()
-        collision_offset =            br.readUInt()
-        cloth_offset =                br.readUInt()
-        num_uvchannels =              br.readUInt()
+        num_vertices = br.readUInt()
+        vertices_offset = br.readUInt()
+        num_indices = br.readUInt()
+        num_additional_indices = br.readUInt()
+        indices_offset = br.readUInt()
+        collision_offset = br.readUInt()
+        cloth_offset = br.readUInt()
+        num_uvchannels = br.readUInt()
 
-        #detour for vertices
+        # detour for vertices
         br.seek(vertices_offset)
-        self.vertexBuffer.read(br, num_vertices, num_uvchannels, mesh, self.prim_object.color1, self.prim_object.properties, flags)
+        self.vertexBuffer.read(br, num_vertices, num_uvchannels, mesh, self.prim_object.color1,
+                               self.prim_object.properties, flags)
 
-        #detour for indices
+        # detour for indices
         br.seek(indices_offset)
         self.indices = [-1] * (num_indices + num_additional_indices)
         for index in range(num_indices + num_additional_indices):
-            self.indices[index] =     br.readUShort()
+            self.indices[index] = br.readUShort()
 
-        #detour for collision info
+        # detour for collision info
         br.seek(collision_offset)
         self.collision.read(br)
 
-        #optional detour for cloth data
-        if(cloth_offset != 0 and self.cloth != -1):
+        # optional detour for cloth data
+        if (cloth_offset != 0 and self.cloth != -1):
             br.seek(cloth_offset)
             self.cloth.read(br, mesh, self)
         else:
@@ -295,11 +316,9 @@ class PrimSubMesh:
         for index in self.indices:
             br.writeUShort(index)
 
-
         br.align(16)
         vert_offset = br.tell()
         self.vertexBuffer.write(br, mesh, self.prim_object.properties, flags)
-
 
         br.align(16)
         coll_offset = br.tell()
@@ -307,7 +326,7 @@ class PrimSubMesh:
 
         br.align(16)
 
-        if(self.cloth != -1):
+        if (self.cloth != -1):
             cloth_offset = br.tell()
             self.cloth.write(br, mesh)
             br.align(16)
@@ -315,12 +334,12 @@ class PrimSubMesh:
             cloth_offset = 0
 
         header_offset = br.tell()
-        #IOI uses a cleared primMesh object. so let's clear it here as well
+        # IOI uses a cleared primMesh object. so let's clear it here as well
         self.prim_object.lodmask = 0x0
-        self.prim_object.color1 = [0,0,0,0]
+        self.prim_object.color1 = [0, 0, 0, 0]
         self.prim_object.wire_color = 0x0
 
-        #TODO: optimze this away
+        # TODO: optimze this away
         bb = self.calc_bb()
         self.prim_object.min = bb[0]
         self.prim_object.max = bb[1]
@@ -330,7 +349,7 @@ class PrimSubMesh:
         br.writeUInt(num_vertices)
         br.writeUInt(vert_offset)
         br.writeUInt(len(self.indices))
-        br.writeUInt(0) #additional indices kept at 0, because we do not know their purpose
+        br.writeUInt(0)  # additional indices kept at 0, because we do not know their purpose
         br.writeUInt(index_offset)
         br.writeUInt(coll_offset)
         br.writeUInt(cloth_offset)
@@ -346,8 +365,8 @@ class PrimSubMesh:
 
         obj_table_offset = br.tell()
         br.writeUInt(header_offset)
-        br.writeUInt(0) #padd
-        br.writeUInt64(0) #padd
+        br.writeUInt(0)  # padd
+        br.writeUInt64(0)  # padd
         return obj_table_offset
 
     def calc_bb(self):
@@ -386,39 +405,39 @@ class PrimSubMesh:
         else:
             return 0
 
+
 class PrimObject:
     def __init__(self, type):
-        self.prims =       Prims(type)
-        self.sub_type =    PrimObjectSubtype(0)
-        self.properties =  PrimObjectPropertyFlags(0)
-        self.lodmask =     0xFF
-        self.variant_id =  0
-        self.zbias =       0
-        self.zoffset =     0
+        self.prims = Prims(type)
+        self.sub_type = PrimObjectSubtype(0)
+        self.properties = PrimObjectPropertyFlags(0)
+        self.lodmask = 0xFF
+        self.variant_id = 0
+        self.zbias = 0
+        self.zoffset = 0
         self.material_id = 0
-        self.wire_color =  0xFFFFFFFF
-        self.color1 = [0xFF] * 4 # global color used when useColor1 is set. will only work when defined inside PrimSubMesh
+        self.wire_color = 0xFFFFFFFF
+        self.color1 = [
+                          0xFF] * 4  # global color used when useColor1 is set. will only work when defined inside PrimSubMesh
         self.min = [0] * 3
         self.max = [0] * 3
 
     def read(self, br):
         self.prims.read(br)
-        self.sub_type =    PrimObjectSubtype(br.readUByte())
-        self.properties =  PrimObjectPropertyFlags(br.readUByte())
-        self.lodmask =     br.readUByte()
-        self.variant_id =  br.readUByte()
-        self.zbias =       br.readUByte() # draws mesh in front of others
-        self.zoffset =     br.readUByte() # will move the mesh towards the camera depending on the distance to it
+        self.sub_type = PrimObjectSubtype(br.readUByte())
+        self.properties = PrimObjectPropertyFlags(br.readUByte())
+        self.lodmask = br.readUByte()
+        self.variant_id = br.readUByte()
+        self.zbias = br.readUByte()  # draws mesh in front of others
+        self.zoffset = br.readUByte()  # will move the mesh towards the camera depending on the distance to it
         self.material_id = br.readUShort()
-        self.wire_color =  br.readUInt()
-
+        self.wire_color = br.readUInt()
 
         # global color used when useColor1 is set. will only work when defined inside PrimSubMesh
         self.color1 = br.readUByteVec(4)
 
         self.min = br.readFloatVec(3)
         self.max = br.readFloatVec(3)
-
 
     def write(self, br):
         self.prims.write(br)
@@ -449,9 +468,10 @@ class BoneAccel:
         br.writeUInt(self.offset)
         br.writeUInt(self.num_indices)
 
+
 class BoneInfo:
     def __init__(self):
-        self.total_size = 0 #TODO: get shortest value here
+        self.total_size = 0  # TODO: get shortest value here
         self.bone_remap = [0xFF] * 255
         self.pad = 0
         self.accel_entries = []
@@ -482,6 +502,7 @@ class BoneInfo:
 
         br.align(16)
 
+
 class BoneIndices:
     def __init__(self):
         self.bone_indices = []
@@ -489,7 +510,7 @@ class BoneIndices:
     def read(self, br):
         num_indices = br.readUInt()
         self.bone_indices = [0] * num_indices
-        br.seek(br.tell() - 4) #aligns the data to match the offset defined in the BonAccel entries
+        br.seek(br.tell() - 4)  # aligns the data to match the offset defined in the BonAccel entries
         for i in range(num_indices):
             self.bone_indices[i] = br.readUShort()
 
@@ -499,7 +520,8 @@ class BoneIndices:
 
         br.align(16)
 
-#needs additional research
+
+# needs additional research
 class ClothData:
     def __init__(self):
         self.size = 0
@@ -521,67 +543,6 @@ class ClothData:
         for b in self.cloth_data:
             br.writeUByte(b)
 
-class PrimMeshWeighted:
-    def __init__(self):
-        self.prim_mesh = PrimMesh()
-        self.num_copy_bones = 0
-        self.copy_bones = 0
-        self.bone_indices = BoneIndices()
-        self.bone_info = BoneInfo()
-
-    def read(self, br, flags):
-
-        self.prim_mesh.read(br, flags)
-        self.num_copy_bones = br.readUInt()
-        copy_bones_offset = br.readUInt()
-
-        #C298
-        bone_indices_offset = br.readUInt()
-        bone_info_offset = br.readUInt()
-
-        br.seek(copy_bones_offset)
-        self.copy_bones = 0 #empty, because unknown
-
-        br.seek(bone_indices_offset)
-        self.bone_indices.read(br)
-
-        br.seek(bone_info_offset)
-        self.bone_info.read(br)
-
-    def write(self, br, flags):
-        sub_mesh_offset = self.prim_mesh.sub_mesh.write(br, self.prim_mesh, flags)
-
-        bone_info_offset = br.tell()
-        self.bone_info.write(br)
-
-        bone_indices_offset = br.tell()
-        self.bone_indices.write(br)
-
-        header_offset = br.tell()
-
-        self.prim_mesh.update()
-        self.prim_mesh.prim_object.write(br)
-
-        br.writeUInt(sub_mesh_offset)
-
-        br.writeFloatVec(self.prim_mesh.pos_scale)
-        br.writeFloatVec(self.prim_mesh.pos_bias)
-        br.writeFloatVec(self.prim_mesh.tex_scale_bias)
-
-
-        self.prim_mesh.cloth_id.write(br)
-
-        br.writeUInt(self.num_copy_bones)
-        br.writeUInt(0) #copy_bones offset PLACEHOLDER
-
-        br.writeUInt(bone_indices_offset)
-        br.writeUInt(bone_info_offset)
-
-        br.align(16)
-        return header_offset
-
-#TODO: make pos scale and bias local only
-#TODO: figure out how tex_scale_bias is calculated
 
 class PrimMesh:
     def __init__(self):
@@ -595,9 +556,9 @@ class PrimMesh:
     def read(self, br, flags):
         self.prim_object.read(br)
 
-        #this will point to a table of submeshes, this is not really usefull since this table will always contain a single pointer
-        #if the table were to contain multiple pointer we'd have no way of knowing since the table size is never defined.
-        #to improve readability sub_mesh_table is not an array
+        # this will point to a table of submeshes, this is not really usefull since this table will always contain a single pointer
+        # if the table were to contain multiple pointer we'd have no way of knowing since the table size is never defined.
+        # to improve readability sub_mesh_table is not an array
         sub_mesh_table_offset = br.readUInt()
 
         self.pos_scale = br.readFloatVec(4)
@@ -611,10 +572,9 @@ class PrimMesh:
         sub_mesh_offset = br.readUInt()
         br.seek(sub_mesh_offset)
         self.sub_mesh.read(br, self, flags)
-        br.seek(old_offset) #reset offset to end of header, this is required for WeightedPrimMesh
+        br.seek(old_offset)  # reset offset to end of header, this is required for WeightedPrimMesh
 
     def write(self, br, flags):
-
         self.update()
         sub_mesh_offset = self.sub_mesh.write(br, self, flags)
 
@@ -628,7 +588,6 @@ class PrimMesh:
         br.writeFloatVec(self.pos_bias)
         br.writeFloatVec(self.tex_scale_bias)
 
-
         self.cloth_id.write(br)
 
         br.align(16)
@@ -640,17 +599,17 @@ class PrimMesh:
         min = bb[0]
         max = bb[1]
 
-        #set bounding box
+        # set bounding box
         self.prim_object.min = min
         self.prim_object.max = max
 
-        #set position scale
+        # set position scale
         self.pos_scale[0] = (max[0] - min[0]) * 0.5
         self.pos_scale[1] = (max[1] - min[1]) * 0.5
         self.pos_scale[2] = (max[2] - min[2]) * 0.5
         self.pos_scale[3] = 0.5
 
-        #set position bias
+        # set position bias
         self.pos_bias[0] = (max[0] + min[0]) * 0.5
         self.pos_bias[1] = (max[1] + min[1]) * 0.5
         self.pos_bias[2] = (max[2] + min[2]) * 0.5
@@ -660,30 +619,90 @@ class PrimMesh:
         minUV = UVbb[0]
         maxUV = UVbb[1]
 
-        #set UV scale
+        # set UV scale
         self.tex_scale_bias[0] = (maxUV[0] - minUV[0]) * 0.5
         self.tex_scale_bias[1] = (maxUV[1] - minUV[1]) * 0.5
 
-        #set UV bias
+        # set UV bias
         self.tex_scale_bias[2] = (maxUV[0] + minUV[0]) * 0.5
         self.tex_scale_bias[3] = (maxUV[1] + minUV[1]) * 0.5
 
 
+class PrimMeshWeighted(PrimMesh):
+    def __init__(self):
+        super().__init__()
+        self.prim_mesh = PrimMesh()
+        self.num_copy_bones = 0
+        self.copy_bones = 0
+        self.bone_indices = BoneIndices()
+        self.bone_info = BoneInfo()
+
+    def read(self, br, flags):
+        super().read(br, flags)
+        self.num_copy_bones = br.readUInt()
+        copy_bones_offset = br.readUInt()
+
+        bone_indices_offset = br.readUInt()
+        bone_info_offset = br.readUInt()
+
+        br.seek(copy_bones_offset)
+        self.copy_bones = 0  # empty, because unknown
+
+        br.seek(bone_indices_offset)
+        self.bone_indices.read(br)
+
+        br.seek(bone_info_offset)
+        self.bone_info.read(br)
+
+    def write(self, br, flags):
+        sub_mesh_offset = self.sub_mesh.write(br, self.prim_mesh, flags)
+
+        bone_info_offset = br.tell()
+        self.bone_info.write(br)
+
+        bone_indices_offset = br.tell()
+        self.bone_indices.write(br)
+
+        header_offset = br.tell()
+
+        self.update()
+        self.prim_object.write(br)
+
+        br.writeUInt(sub_mesh_offset)
+
+        br.writeFloatVec(self.pos_scale)
+        br.writeFloatVec(self.pos_bias)
+        br.writeFloatVec(self.tex_scale_bias)
+
+        self.cloth_id.write(br)
+
+        br.writeUInt(self.num_copy_bones)
+        br.writeUInt(0)  # copy_bones offset PLACEHOLDER
+
+        br.writeUInt(bone_indices_offset)
+        br.writeUInt(bone_info_offset)
+
+        br.align(16)
+        return header_offset
+
+
+# TODO: make pos scale and bias local only
 class PrimHeader:
     def __init__(self, type):
         self.draw_destination = 0
-        self.pack_type =        0
-        self.type =             PrimType(type)
+        self.pack_type = 0
+        self.type = PrimType(type)
 
     def read(self, br):
         self.draw_destination = br.readUByte()
-        self.pack_type =        br.readUByte()
-        self.type =             PrimType(br.readUShort())
+        self.pack_type = br.readUByte()
+        self.type = PrimType(br.readUShort())
 
     def write(self, br):
         br.writeUByte(self.draw_destination)
         br.writeUByte(self.pack_type)
         br.writeUShort(self.type)
+
 
 class Prims:
     def __init__(self, type):
@@ -695,25 +714,25 @@ class Prims:
     def write(self, br):
         self.prim_header.write(br)
 
+
 class PrimObjectHeader:
     def __init__(self):
         self.prims = Prims(1)
-        self.property_flags =           PrimObjectHeaderPropertyFlags(0)
-        self.bone_rig_resource_index =  0xFFFFFFFF
+        self.property_flags = PrimObjectHeaderPropertyFlags(0)
+        self.bone_rig_resource_index = 0xFFFFFFFF
         self.min = [sys.float_info.max] * 3
         self.max = [sys.float_info.min] * 3
         self.object_table = []
 
     def read(self, br):
         self.prims.read(br)
-        self.property_flags =           PrimObjectHeaderPropertyFlags(br.readUInt())
-        self.bone_rig_resource_index =  br.readUInt()
-        num_objects =                   br.readUInt()
-        object_table_offset =           br.readUInt()
+        self.property_flags = PrimObjectHeaderPropertyFlags(br.readUInt())
+        self.bone_rig_resource_index = br.readUInt()
+        num_objects = br.readUInt()
+        object_table_offset = br.readUInt()
 
         self.min = br.readFloatVec(3)
         self.max = br.readFloatVec(3)
-
 
         br.seek(object_table_offset)
         object_table_offsets = [-1] * num_objects
@@ -723,7 +742,7 @@ class PrimObjectHeader:
         self.object_table = [-1] * num_objects
         for obj in range(num_objects):
             br.seek(object_table_offsets[obj])
-            if(self.property_flags.isWeightedObject()):
+            if (self.property_flags.isWeightedObject()):
                 self.object_table[obj] = PrimMeshWeighted()
                 self.object_table[obj].read(br, self.property_flags)
             else:
@@ -757,7 +776,6 @@ class PrimObjectHeader:
         br.writeFloatVec(self.min)
         br.writeFloatVec(self.max)
 
-
         if br.tell() % 8 != 0:
             br.writeUInt(0)
         return header_offset
@@ -769,6 +787,7 @@ class PrimObjectHeader:
             if max[axis] > self.max[axis]:
                 self.max[axis] = max[axis]
 
+
 class RenderPrimitve:
     def __init__(self):
         self.header = PrimObjectHeader()
@@ -779,8 +798,8 @@ class RenderPrimitve:
         self.header.read(br)
 
     def write(self, br):
-        br.writeUInt64(420) #PLACEHOLDER
-        br.writeUInt64(0) #padding
+        br.writeUInt64(420)  # PLACEHOLDER
+        br.writeUInt64(0)  # padding
         header_offset = self.header.write(br)
         br.seek(0)
         br.writeUInt64(header_offset)

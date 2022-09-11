@@ -5,23 +5,23 @@ import mathutils as mu
 import numpy as np
 
 from bpy.props import (BoolProperty,
-    FloatProperty,
-    StringProperty,
-    EnumProperty,
-    )
+                       FloatProperty,
+                       StringProperty,
+                       EnumProperty,
+                       )
 from bpy_extras.io_utils import (ImportHelper,
-    ExportHelper,
-    unpack_list,
-    unpack_face_list,
-    axis_conversion,
-    )
+                                 ExportHelper,
+                                 unpack_list,
+                                 unpack_face_list,
+                                 axis_conversion,
+                                 )
 
 from . import format
-from . import io_binary
+from .. import io_binary
+
 
 def __get_positions(mesh, matrix):
-
-    #read the vertex locations
+    # read the vertex locations
     locs = np.empty(len(mesh.vertices) * 3, dtype=np.float32)
     source = mesh.vertices
     for vert in source:
@@ -46,9 +46,10 @@ def __get_normals(mesh):
             if int(round(ns[axis])) != 0:
                 ns[axis] = round(ns[axis])
             else:
-                ns[axis] = ns[axis] + (1/255)
+                ns[axis] = ns[axis] + (1 / 255)
 
     return normals
+
 
 def __get_tangents(mesh):
     """Get an array of the tangent for each loop."""
@@ -61,9 +62,10 @@ def __get_tangents(mesh):
             if int(round(ts[axis])) != 0:
                 ts[axis] = round(ts[axis])
             else:
-                ts[axis] = ts[axis] + (1/255)
+                ts[axis] = ts[axis] + (1 / 255)
 
     return tangents
+
 
 def __get_bitangents(mesh):
     """Get an array of the tangent for each loop."""
@@ -76,9 +78,10 @@ def __get_bitangents(mesh):
             if int(round(bs[axis])) != 0:
                 bs[axis] = round(bs[axis])
             else:
-                bs[axis] = bs[axis] + (1/255)
+                bs[axis] = bs[axis] + (1 / 255)
 
     return bitangents
+
 
 def __get_uvs(mesh, uv_i):
     layer = mesh.uv_layers[uv_i]
@@ -92,6 +95,7 @@ def __get_uvs(mesh, uv_i):
 
     return uvs
 
+
 def __get_colors(mesh, color_i):
     colors = np.empty(len(mesh.loops) * 4, dtype=np.float32)
     layer = mesh.vertex_colors[color_i]
@@ -99,6 +103,7 @@ def __get_colors(mesh, color_i):
     colors = colors.reshape(len(mesh.loops), 4)
     # colors are already linear, no need to switch color space
     return colors
+
 
 def save_prim(operator, context, filepath):
     # Export the selected mesh
@@ -112,7 +117,7 @@ def save_prim(operator, context, filepath):
         triangulate_object(ob)
         prim_obj.sub_mesh = save_prim_sub_mesh(ob)
         if len(prim_obj.sub_mesh.vertexBuffer.vertices) > 10000:
-                prim_obj.prim_object.properties.setHighResulution()
+            prim_obj.prim_object.properties.setHighResulution()
 
         prim.header.object_table.append(prim_obj)
 
@@ -124,6 +129,7 @@ def save_prim(operator, context, filepath):
     bre.close()
 
     return {'FINISHED'}
+
 
 def save_prim_sub_mesh(blender_obj):
     mesh = blender_obj.to_mesh()
@@ -185,7 +191,7 @@ def save_prim_sub_mesh(blender_obj):
         dots['colorA'] = colors[:, 3]
         del colors
     else:
-        #TODO: look into converting this to color1
+        # TODO: look into converting this to color1
         colors = np.full(len(mesh.loops) * 4, 0xFF, dtype=np.float32)
         colors = colors.reshape(len(mesh.loops), 4)
         dots['colorR'] = colors[:, 0]
@@ -201,7 +207,6 @@ def save_prim_sub_mesh(blender_obj):
     prim_mesh.indices = loop_indices.tolist()
     prim_mesh.vertexBuffer.vertices = [0] * len(np.unique(loop_indices))
 
-
     prim_dots = dots[loop_indices]
 
     blender_idxs = prim_dots['vertex_index']
@@ -216,19 +221,19 @@ def save_prim_sub_mesh(blender_obj):
     normals[:, 0] = prim_dots['nx']
     normals[:, 1] = prim_dots['ny']
     normals[:, 2] = prim_dots['nz']
-    normals[:, 3] = 1/255
+    normals[:, 3] = 1 / 255
 
     tangents = np.empty((len(prim_dots), 4), dtype=np.float32)
     tangents[:, 0] = prim_dots['tx']
     tangents[:, 1] = prim_dots['ty']
     tangents[:, 2] = prim_dots['tz']
-    tangents[:, 3] = 1/255
+    tangents[:, 3] = 1 / 255
 
     bitangents = np.empty((len(prim_dots), 4), dtype=np.float32)
     bitangents[:, 0] = prim_dots['bx']
     bitangents[:, 1] = prim_dots['by']
     bitangents[:, 2] = prim_dots['bz']
-    bitangents[:, 3] = 1/255
+    bitangents[:, 3] = 1 / 255
 
     uvs = np.empty((len(mesh.uv_layers), len(prim_dots), 2), dtype=np.float32)
     for tex_coord_i in range(len(mesh.uv_layers)):
@@ -256,7 +261,7 @@ def save_prim_sub_mesh(blender_obj):
 
     return prim_mesh
 
-#TODO: currently breaks original mesh. please fix
+
 def triangulate_object(obj):
     me = obj.data
     # Get a BMesh representation
