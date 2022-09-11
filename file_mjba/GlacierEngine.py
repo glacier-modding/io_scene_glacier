@@ -1,5 +1,4 @@
-import bpy
-from .Animation import Animation
+from . import Animation
 
 
 class GlacierEngine:

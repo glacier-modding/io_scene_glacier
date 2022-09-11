@@ -1,8 +1,8 @@
 import bpy
-from .io_binary import BinaryReader
-from .file_mjba.MjbaReader import MjbaReader
-from .file_mrtr.format import MorphemeRig
-from . import BlenderUI
+from ..io_binary import BinaryReader
+from .. import BlenderUI
+from ..file_mrtr.format import MorphemeRig
+from . import MjbaReader
 import math
 import mathutils
 
@@ -17,7 +17,7 @@ class Animation:
         with open(self.mjba_path, "rb") as f:
             self.mjba = MjbaReader(BinaryReader(f))
         with open(self.mrtr_path, "rb") as f:
-            self.mrtr = Mrtr()
+            self.mrtr = MorphemeRig()
             self.mrtr.read(BinaryReader(f))
         if self.mjba.mrtr_bone_map.mrtr_bone_count != len(self.mrtr.hierarchy.bone_parents):
             BlenderUI.MessageBox("The MJBA and MRTR have mismatched bone counts!", icon="ERROR")
