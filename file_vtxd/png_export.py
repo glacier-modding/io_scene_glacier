@@ -1,6 +1,7 @@
 import sys
 import math
 from format import VertexData
+
 sys.path.append("..\\")
 import io_binary
 from PIL import Image
@@ -21,15 +22,15 @@ if len(sys.argv) == 2:
 
         height = int(math.sqrt(int(sub_mesh.num_vertices())))
         width = int(math.sqrt(int(sub_mesh.num_vertices())))
-        img  = Image.new( mode = "RGBA", size = (width, height))
+        img = Image.new(mode="RGBA", size=(width, height))
 
         for Y in range(height):
             for X in range(width):
                 col = sub_mesh.vertexColors[(Y * width) + X]
-                img.putpixel((Y, X), (col[0],col[1],col[2],col[3]))
+                img.putpixel((Y, X), (col[0], col[1], col[2], col[3]))
         img.save(path + ".exported" + str(img_idx))
         img_idx += 1
 
 
 else:
-	print('Usage: python(3) bmp_export.py <path to VTXD file>')
+    print('Usage: python(3) bmp_export.py <path to VTXD file>')
