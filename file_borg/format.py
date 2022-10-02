@@ -117,6 +117,7 @@ class BoneConstraintLookat(BoneConstraint):
         self.target_parent_idx = self.target_parent_idx[:nr_targets]
         self.bone_targets_weights = self.bone_targets_weights[:nr_targets]
         self.target_pos = self.target_pos[:nr_targets]
+        self.target_pos = self.target_pos[:nr_targets]
 
     def write(self, br):
         br.writeUByte(self.type)
@@ -263,7 +264,6 @@ class BoneRig:
         self.bone_definitions = []
         self.bind_poses = []
         self.inv_global_mats = []
-
         self.pose_bones = []
         self.pose_bone_indices = []
         self.pose_entry_index = []

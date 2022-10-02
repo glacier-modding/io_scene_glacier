@@ -206,7 +206,7 @@ class Glacier_ExportMRTR(Operator):
 #    Panels
 # ------------------------------------------------------------------------
 
-class Glacier_Import_Panel(Panel):
+class GLACIER_PT_AnimImportPanel(Panel):
     bl_label = "Glacier Engine Import"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
@@ -228,7 +228,7 @@ class Glacier_Import_Panel(Panel):
         layout.label(text="if you are making an animation for the default character rig.")
 
 
-class Glacier_Export_Panel(Panel):
+class GLACIER_PT_AnimExportPanel(Panel):
     bl_label = "Glacier Engine Export"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
@@ -267,8 +267,8 @@ classes = (
     Glacier_ImportMJBA,
     Glacier_ExportMJBA,
     Glacier_ExportMRTR,
-    Glacier_Import_Panel,
-    Glacier_Export_Panel
+    GLACIER_PT_AnimImportPanel,
+    GLACIER_PT_AnimExportPanel
 )
 
 

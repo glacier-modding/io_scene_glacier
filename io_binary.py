@@ -156,12 +156,7 @@ class BinaryReader:
         self.file.write(val.to_bytes(4, byteorder='little', signed=False))
 
     def writeShort(self, val):
-        # try:
         self.file.write(val.to_bytes(2, byteorder='little', signed=True))
-
-    # except OverflowError as err:
-    #	print('Overflowed trying to convert ' + str(val) + " to a short",  err)
-    #	raise Exception("Error")
 
     def writeUShort(self, val):
         self.file.write(val.to_bytes(2, byteorder='little', signed=False))
@@ -181,16 +176,6 @@ class BinaryReader:
 
     def writeShortQuantizedVec(self, vec, scale, bias):
         for i in range(len(vec)):
-            # print(vec[i])
-            # print(bias[i])
-            # print(scale[i])
-            # print(vec[i] - bias[i])
-            # print((vec[i] - bias[i]) * 0x7FFF)
-            # print(((vec[i] - bias[i]) * 0x7FFF) / scale[i])
-            # print(round(((vec[i] - bias[i]) * 0x7FFF) / scale[i]))
-            # print(int(round(((vec[i] - bias[i]) * 0x7FFF) / scale[i])))
-            # print()
-
             self.writeShort(int(round(((vec[i] - bias[i]) * 0x7FFF) / scale[i])))
 
     def writeUByteQuantizedVec(self, vec):

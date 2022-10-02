@@ -149,8 +149,8 @@ class BoxColi:
 class Vertex:
     def __init__(self):
         self.position = [0] * 4
-        self.weight = [0] * 6
-        self.joint = [0] * 6
+        self.weight = [[0] * 4 for i in range(2)] 
+        self.joint = [[0] * 4 for i in range(2)] 
         self.normal = [1] * 4
         self.tangent = [1] * 4
         self.bitangent = [1] * 4
@@ -179,20 +179,25 @@ class VertexBuffer:
 
         if (flags.isWeightedObject()):
             for vert in range(num_vertices):
-                self.vertices[vert].weight[0] = br.readUByte() / 255
-                self.vertices[vert].weight[1] = br.readUByte() / 255
-                self.vertices[vert].weight[2] = br.readUByte() / 255
-                self.vertices[vert].weight[3] = br.readUByte() / 255
+                self.vertices[vert].weight[0][0] = br.readUByte() / 255
+                self.vertices[vert].weight[0][1] = br.readUByte() / 255
+                self.vertices[vert].weight[0][2] = br.readUByte() / 255
+                self.vertices[vert].weight[0][3] = br.readUByte() / 255
 
-                self.vertices[vert].joint[0] = br.readUByte()
-                self.vertices[vert].joint[1] = br.readUByte()
-                self.vertices[vert].joint[2] = br.readUByte()
-                self.vertices[vert].joint[3] = br.readUByte()
+                self.vertices[vert].joint[0][0] = br.readUByte()
+                self.vertices[vert].joint[0][1] = br.readUByte()
+                self.vertices[vert].joint[0][2] = br.readUByte()
+                self.vertices[vert].joint[0][3] = br.readUByte()
 
-                self.vertices[vert].weight[4] = br.readUByte() / 255
-                self.vertices[vert].weight[5] = br.readUByte() / 255
-                self.vertices[vert].joint[4] = br.readUByte()
-                self.vertices[vert].joint[5] = br.readUByte()
+                self.vertices[vert].weight[1][0] = br.readUByte() / 255
+                self.vertices[vert].weight[1][1] = br.readUByte() / 255
+                self.vertices[vert].weight[1][2] = 0
+                self.vertices[vert].weight[1][3] = 0
+
+                self.vertices[vert].joint[1][0] = br.readUByte()
+                self.vertices[vert].joint[1][1] = br.readUByte()
+                self.vertices[vert].joint[1][2] = 0
+                self.vertices[vert].joint[1][3] = 0
 
         for vert in range(num_vertices):
             self.vertices[vert].normal = br.readUByteQuantizedVec(4)
@@ -233,20 +238,20 @@ class VertexBuffer:
         # joints and weights
         if (flags.isWeightedObject()):
             for vert in range(num_vertices):
-                br.writeUByte(br.IOI_round(self.vertices[vert].weight[0]))
-                br.writeUByte(br.IOI_round(self.vertices[vert].weight[1]))
-                br.writeUByte(br.IOI_round(self.vertices[vert].weight[2]))
-                br.writeUByte(br.IOI_round(self.vertices[vert].weight[3]))
+                br.writeUByte(br.IOI_round(self.vertices[vert].weight[0][0]))
+                br.writeUByte(br.IOI_round(self.vertices[vert].weight[0][1]))
+                br.writeUByte(br.IOI_round(self.vertices[vert].weight[0][2]))
+                br.writeUByte(br.IOI_round(self.vertices[vert].weight[0][3]))
 
-                br.writeUByte(self.vertices[vert].joint[0])
-                br.writeUByte(self.vertices[vert].joint[1])
-                br.writeUByte(self.vertices[vert].joint[2])
-                br.writeUByte(self.vertices[vert].joint[3])
+                br.writeUByte(self.vertices[vert].joint[0][0])
+                br.writeUByte(self.vertices[vert].joint[0][1])
+                br.writeUByte(self.vertices[vert].joint[0][2])
+                br.writeUByte(self.vertices[vert].joint[0][3])
 
-                br.writeUByte(br.IOI_round(self.vertices[vert].weight[4]))
-                br.writeUByte(br.IOI_round(self.vertices[vert].weight[5]))
-                br.writeUByte(self.vertices[vert].joint[4])
-                br.writeUByte(self.vertices[vert].joint[5])
+                br.writeUByte(br.IOI_round(self.vertices[vert].weight[1][0]))
+                br.writeUByte(br.IOI_round(self.vertices[vert].weight[1][1]))
+                br.writeUByte(self.vertices[vert].joint[1][0])
+                br.writeUByte(self.vertices[vert].joint[1][1])
 
         # ntb + uv
         for vert in range(num_vertices):
@@ -804,6 +809,18 @@ class RenderPrimitve:
         br.seek(0)
         br.writeUInt64(header_offset)
 
+    def readHeader(self, br):
+        offset = br.readUInt()
+        br.seek(offset)
+        header_values = PrimObjectHeader()
+        header_values.prims.read(br)
+        header_values.property_flags = PrimObjectHeaderPropertyFlags(br.readUInt())
+        header_values.bone_rig_resource_index = br.readUInt()
+        br.readUInt()
+        br.readUInt()
+        header_values.min = br.readFloatVec(3)
+        header_values.max = br.readFloatVec(3)
+        return header_values
     def num_objects(self):
         num = 0
         for obj in self.header.object_table:
