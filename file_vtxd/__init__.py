@@ -84,11 +84,11 @@ def unregister():
 
 
 def menu_func_import(self, context):
-    self.layout.operator(ImportVTXD.bl_idname, text="Hitman VertexData (.vtxd)")
+    self.layout.operator(ImportVTXD.bl_idname, text="Glacier VertexData (.vtxd)")
 
 
 def menu_func_export(self, context):
-    self.layout.operator(ExportVTXD.bl_idname, text="Hitman VertexData (.vtxd)")
+    self.layout.operator(ExportVTXD.bl_idname, text="Glacier VertexData (.vtxd)")
 
 
 if __name__ == '__main__':

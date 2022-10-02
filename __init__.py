@@ -40,6 +40,7 @@ import bpy
 from . import file_prim
 from . import file_vtxd
 from . import file_mjba
+from . import file_borg
 
 
 from bpy.props import (BoolVectorProperty,
@@ -91,8 +92,8 @@ class GlacierSettings(PropertyGroup):
 # ------------------------------------------------------------------------
 #    Panels
 # ------------------------------------------------------------------------
-class Glacier_Setting_Panel(bpy.types.Panel):
-    bl_idname = 'Glacier_Setting_Panel'
+class GLACIER_PT_settingsPanel(bpy.types.Panel):
+    bl_idname = 'GLACIER_PT_settingsPanel'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = 'Glacier'
@@ -108,15 +109,20 @@ class Glacier_Setting_Panel(bpy.types.Panel):
         for i, name in enumerate(["high", "   ", "   ", "   ", "   ", "   ", "   ", "low"]):
             row.prop(glacier_settings, "show_lod", index=i, text=name, toggle=True)
 
-
 # ------------------------------------------------------------------------
 #    Registration
 # ------------------------------------------------------------------------
 
+classes = [
+    GlacierSettings,
+    GLACIER_PT_settingsPanel
+]
+
 modules = [
     file_prim,
     file_vtxd,
-    file_mjba
+    file_mjba,
+    file_borg
 ]
 
 def register():
@@ -125,7 +131,8 @@ def register():
     for module in modules:
         module.register()
 
-    register_class(GlacierSettings)
+    for cls in classes:
+        register_class(cls)
 
     bpy.types.Scene.glacier_settings = PointerProperty(type=GlacierSettings)
 
@@ -136,7 +143,8 @@ def unregister():
     for module in reversed(modules):
         module.unregister()
 
-    unregister_class(GlacierSettings)
+    for cls in classes:
+        unregister_class(cls)
     
     del bpy.types.Scene.glacier_settings
 

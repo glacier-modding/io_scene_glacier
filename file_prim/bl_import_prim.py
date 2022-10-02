@@ -16,24 +16,33 @@ from bpy_extras.io_utils import (ImportHelper,
                                  axis_conversion,
                                  )
 
-from . import format
+from . import format as prim_format
+from ..file_borg import format as borg_format
 from .. import io_binary
 
 
-def load_prim(operator, context, filepath):
+def load_prim(operator, context, filepath, use_rig, rig_filepath):
     fp = os.fsencode(filepath)
     file = open(fp, "rb")
     br = io_binary.BinaryReader(file)
-    meshes = []
+    prim = prim_format.RenderPrimitve()
+    prim.read(br)
+    br.close()
+
+    borg = None
+    if use_rig:
+        fp = os.fsencode(rig_filepath)
+        file = open(fp, "rb")
+        br = io_binary.BinaryReader(file)
+        borg = borg_format.BoneRig()
+        borg.read(br)
 
     prim_name = bpy.path.display_name_from_filepath(filepath)
     print("Start reading: " + str(prim_name) + "\n")
 
-    prim = format.RenderPrimitve()
-    prim.read(br)
-
+    meshes = []
     for meshIndex in range(prim.num_objects()):
-        meshes.append(load_prim_mesh(prim, prim_name, meshIndex))
+        meshes.append(load_prim_mesh(prim, borg, prim_name, meshIndex))
 
         # coli testing
         # load_prim_coli(prim, prim_name, meshIndex)
@@ -73,21 +82,37 @@ def load_prim_coli(prim, prim_name, meshIndex):
         me.name = 'CUBEMESH'
 
 
-def load_prim_mesh(prim, prim_name, meshIndex, borg=-1):
+def load_prim_mesh(prim, borg, prim_name, meshIndex):
     mesh = bpy.data.meshes.new(name=(str(prim_name) + "_" + str(meshIndex)))
+
+    use_rig = False
+    if borg is not None:
+        use_rig = True
 
     vert_locs = []
     loop_vidxs = []
     loop_uvs = [[]]
     loop_cols = []
 
+    num_joint_sets = 0
+
+    if prim.header.property_flags.isWeightedObject() and use_rig:
+        num_joint_sets = 2
+
     sub_mesh = prim.header.object_table[meshIndex].sub_mesh
+
+    vert_joints = [[[0] * 4 for j in range(len(sub_mesh.vertexBuffer.vertices))] for i in range(num_joint_sets)]
+    vert_weights = [[[0] * 4 for j in range(len(sub_mesh.vertexBuffer.vertices))] for i in range(num_joint_sets)]
 
     loop_vidxs.extend(sub_mesh.indices)
 
     i = 0
     for vert in sub_mesh.vertexBuffer.vertices:
         vert_locs.extend([vert.position[0], vert.position[1], vert.position[2]])
+
+        for j in range(num_joint_sets):
+            vert_joints[j][i] = (vert.joint[j])
+            vert_weights[j][i] = (vert.weight[j])
         i = i + 1
 
     for index in sub_mesh.indices:
@@ -110,11 +135,31 @@ def load_prim_mesh(prim, prim_name, meshIndex, borg=-1):
     mesh.polygons.foreach_set('loop_start', loop_starts)
     mesh.polygons.foreach_set('loop_total', loop_totals)
 
-    print(sub_mesh.num_uvchannels)
     for uv_i in range(sub_mesh.num_uvchannels):
         name = 'UVMap' if uv_i == 0 else 'UVMap.%03d' % uv_i
         layer = mesh.uv_layers.new(name=name)
         layer.data.foreach_set('uv', loop_uvs[uv_i])
+
+    # Skinning
+    ob = bpy.data.objects.new('temp_obj', mesh)
+    if num_joint_sets and use_rig:
+
+        for bone in borg.bone_definitions:
+            ob.vertex_groups.new(name=bone.name.decode("utf-8"))
+
+        vgs = list(ob.vertex_groups)
+
+        for i in range(num_joint_sets):
+            js = vert_joints[i]
+            ws = vert_weights[i]
+            for vi in range(len(vert_locs) // 3):
+                w0, w1, w2, w3 = ws[vi]
+                j0, j1, j2, j3 = js[vi]
+                if w0 != 0: vgs[j0].add((vi,), w0, 'REPLACE')
+                if w1 != 0: vgs[j1].add((vi,), w1, 'REPLACE')
+                if w2 != 0: vgs[j2].add((vi,), w2, 'REPLACE')
+                if w3 != 0: vgs[j3].add((vi,), w3, 'REPLACE')
+    bpy.data.objects.remove(ob)
 
     layer = mesh.vertex_colors.new(name='Col')
     mesh.color_attributes[layer.name].data.foreach_set('color', loop_cols)
