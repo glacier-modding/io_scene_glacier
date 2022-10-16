@@ -160,6 +160,11 @@ def prettify_bones(bones):
         rot = None
 
         bone.bone_length = pick_bone_length(bones, bone_id)
+
+        #clamp the bonelength if necessary
+        if bone.bone_length < 0.0001:
+            bone.bone_length = 0.001
+        
         rot = pick_bone_rotation(bones, bone_id, parent_rot)
         if rot is not None:
             rotate_edit_bone(bones, bone_id, rot)
@@ -216,15 +221,16 @@ def init_bones(borg, bones):
         bones[i] = bl_bone
         bl_bone.name = bone.name
         bl_bone.base_trs = get_bone_trs(borg.bind_poses[i])
+        if i == 0:  # if root
+            rot = mathutils.Euler((0.0, 0.0, 0.0), 'XYZ')
+            rot.rotate_axis('X', math.radians(-90.0))
+            bl_bone.base_trs[1].rotate(rot)
+
         bl_bone.bind_trans = Vector(bl_bone.base_trs[0])
         bl_bone.bind_rot = Quaternion(bl_bone.base_trs[1])
         bl_bone.editbone_trans = Vector(bl_bone.bind_trans)
         bl_bone.editbone_rot = Quaternion(bl_bone.bind_rot)
         bl_bone.parent = bone.prev_bone_nr
-        if i == 0:  # if root
-            rot = mathutils.Euler((0.0, 0.0, 0.0), 'XYZ')
-            rot.rotate_axis('X', math.radians(-90.0))
-            bl_bone.base_trs[1].rotate(rot)
 
     for i, bone in enumerate(borg.bone_definitions):
         if len(borg.bone_definitions) >= bone.prev_bone_nr >= 0:
