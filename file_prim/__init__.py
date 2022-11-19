@@ -26,7 +26,7 @@ class ImportPRIM(bpy.types.Operator, ImportHelper):
     bl_label = "Import PRIM Mesh"
     filename_ext = ".prim"
 
-    filter_glob = StringProperty(
+    filter_glob: StringProperty(
         default="*.prim",
         options={'HIDDEN'},
     )
@@ -83,7 +83,6 @@ class ImportPRIM(bpy.types.Operator, ImportHelper):
                     if f: f.close()
 
         layout.row(align=True)
-        row = layout.row(align=True)
 
         # row.prop(self, "use_aloc")
         # row = layout.row(align=True)
@@ -131,18 +130,27 @@ class ExportPRIM(bpy.types.Operator, ExportHelper):
     filename_ext = '.prim'
     filter_glob: StringProperty(default='*.prim', options={'HIDDEN'})
 
+    def draw(self, context):
+
+        if not ".prim" in self.filepath.lower():
+            return
+
+        layout = self.layout
+        layout.label(text="export options:")
+
+
     def execute(self, context):
         from . import bl_export_prim
         keywords = self.as_keywords(ignore=(
             'check_existing',
-            'filter_glob',
+            'filter_glob'
         ))
         return bl_export_prim.save_prim(self, context, **keywords)
 
 
 class Prim_Properties(PropertyGroup):
     lod: BoolVectorProperty(
-        name='show_lod',
+        name='lod_mask',
         description='Set which LOD levels should be shown',
         default=(True, True, True, True, True, True, True, True),
         size=8,
@@ -158,26 +166,29 @@ class GLACIER_PT_PrimPropertiesPanel(bpy.types.Panel):
     bl_category = 'Glacier'
     bl_label = 'Prim Properties'
 
+    @classmethod
+    def poll(self, context):
+        return context.object is not None
+
     def draw(self, context):
-        obj = bpy.context.view_layer.objects.active
+        obj = context.object
         if obj.type != 'MESH':
             return
 
-        mesh = obj.to_mesh()
+        mesh = obj.data
 
         layout = self.layout
-        layout.label(text="show LOD:")
-
+        layout.label(text="Lod mask:")
         row = layout.row(align=True)
         for i, name in enumerate(["high", "   ", "   ", "   ", "   ", "   ", "   ", "low"]):
             row.prop(mesh.prim_properties, "lod", index=i, text=name, toggle=True)
 
 
 classes = [
-    ImportPRIM,
-    ExportPRIM,
     Prim_Properties,
-    GLACIER_PT_PrimPropertiesPanel
+    GLACIER_PT_PrimPropertiesPanel,
+    ImportPRIM,
+    ExportPRIM
 ]
 
 
@@ -187,7 +198,6 @@ def register():
     bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
     bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
     bpy.types.Mesh.prim_properties = PointerProperty(type=Prim_Properties)
-
 
 
 def unregister():

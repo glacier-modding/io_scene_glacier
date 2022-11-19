@@ -64,7 +64,7 @@ class GlacierSettings(PropertyGroup):
             should_show = False
             for bit in range(8):
                 if self.show_lod[bit]:
-                    if obj.to_mesh().prim_properties.lod[bit] == self.show_lod[bit]:
+                    if obj.data.prim_properties.lod[bit] == self.show_lod[bit]:
                         should_show = True
 
             obj.hide_set(not should_show)
