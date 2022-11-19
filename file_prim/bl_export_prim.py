@@ -111,10 +111,15 @@ def save_prim(operator, context, filepath):
     prim = format.RenderPrimitve()
     prim.header.object_table = []
 
-    mesh_obs = [o for o in bpy.context.scene.objects if o.type == 'MESH']
+    mesh_obs = [o for o in bpy.context.collection.all_objects if o.type == 'MESH']
     for ob in mesh_obs:
         prim_obj = format.PrimMesh()
         triangulate_object(ob)
+
+        lod = bitArrToInt(ob.data.prim_properties.lod)
+        prim_obj.prim_object.lodmask = lod
+        print("now lodmask", prim_obj.prim_object.lodmask, "is", lod)
+
         prim_obj.sub_mesh = save_prim_sub_mesh(ob)
         if len(prim_obj.sub_mesh.vertexBuffer.vertices) > 10000:
             prim_obj.prim_object.properties.setHighResulution()
@@ -261,6 +266,14 @@ def save_prim_sub_mesh(blender_obj):
 
     return prim_mesh
 
+def bitArrToInt(arr):
+    lodStr = ""
+    for bit in arr:
+        if bit:
+            lodStr = "1" + lodStr
+        else:
+            lodStr = "0" + lodStr
+    return int(lodStr, 2)
 
 def triangulate_object(obj):
     me = obj.data
