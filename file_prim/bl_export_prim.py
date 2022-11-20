@@ -116,6 +116,9 @@ def save_prim(operator, context, filepath):
         prim_obj = format.PrimMesh()
         triangulate_object(ob)
 
+        material_id = ob.data.prim_properties.material_id
+        prim_obj.prim_object.material_id = material_id
+
         lod = bitArrToInt(ob.data.prim_properties.lod)
         prim_obj.prim_object.lodmask = lod
         print("now lodmask", prim_obj.prim_object.lodmask, "is", lod)
