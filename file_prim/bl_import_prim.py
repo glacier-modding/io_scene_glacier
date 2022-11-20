@@ -167,6 +167,9 @@ def load_prim_mesh(prim, borg, prim_name, meshIndex):
     mesh.validate()
     mesh.update()
 
+    material_id = prim.header.object_table[meshIndex].prim_object.material_id
+    mesh.prim_properties.material_id = material_id
+
     lod = prim.header.object_table[meshIndex].prim_object.lodmask
     mask = []
     for bit in range(8):

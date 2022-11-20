@@ -12,6 +12,7 @@ from bpy.props import (StringProperty,
                        BoolProperty,
                        BoolVectorProperty,
                        PointerProperty,
+                       IntProperty
                        )
 
 from bpy.types import (Panel,
@@ -157,6 +158,14 @@ class Prim_Properties(PropertyGroup):
         subtype='LAYER'
     )
 
+    material_id: IntProperty(
+        name='',
+        description='Set the Material ID',
+        default=0,
+        min=0,
+        max=255
+    )
+
 
 class GLACIER_PT_PrimPropertiesPanel(bpy.types.Panel):
     bl_idname = 'GLACIER_PT_PrimPropertiesPanel'
@@ -182,6 +191,10 @@ class GLACIER_PT_PrimPropertiesPanel(bpy.types.Panel):
         row = layout.row(align=True)
         for i, name in enumerate(["high", "   ", "   ", "   ", "   ", "   ", "   ", "low"]):
             row.prop(mesh.prim_properties, "lod", index=i, text=name, toggle=True)
+
+        layout.label(text="Material ID:")
+        row = layout.row(align=True)
+        row.prop(mesh.prim_properties, "material_id")
 
 
 classes = [
