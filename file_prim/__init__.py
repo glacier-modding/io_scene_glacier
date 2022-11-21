@@ -58,7 +58,7 @@ class ImportPRIM(bpy.types.Operator, ImportHelper):
 
     def draw(self, context):
 
-        if not ".prim" in self.filepath.lower():
+        if ".prim" not in self.filepath.lower():
             return
 
         layout = self.layout
@@ -81,14 +81,10 @@ class ImportPRIM(bpy.types.Operator, ImportHelper):
                 except IOError:
                     layout.label(text="Given filepath not valid", icon="ERROR")
                 finally:
-                    if f: f.close()
+                    if f:
+                        f.close()
 
         layout.row(align=True)
-
-        # row.prop(self, "use_aloc")
-        # row = layout.row(align=True)
-        # row.enabled = self.use_aloc is not False
-        # row.prop(self, "aloc_filepath")
 
     def execute(self, context):
         from . import bl_import_prim
@@ -114,6 +110,9 @@ class ImportPRIM(bpy.types.Operator, ImportHelper):
             if self.use_rig and arma_obj:
                 obj.modifiers.new(name='Glacier Bonerig', type='ARMATURE')
                 obj.modifiers['Glacier Bonerig'].object = arma_obj
+
+            obj.data.polygons.foreach_set('use_smooth',  [True] * len(obj.data.polygons))
+
             collection.objects.link(obj)
 
         context.scene.collection.children.link(collection)
@@ -132,13 +131,11 @@ class ExportPRIM(bpy.types.Operator, ExportHelper):
     filter_glob: StringProperty(default='*.prim', options={'HIDDEN'})
 
     def draw(self, context):
-
-        if not ".prim" in self.filepath.lower():
+        if ".prim" not in self.filepath.lower():
             return
 
         layout = self.layout
         layout.label(text="export options:")
-
 
     def execute(self, context):
         from . import bl_export_prim
@@ -149,7 +146,9 @@ class ExportPRIM(bpy.types.Operator, ExportHelper):
         return bl_export_prim.save_prim(self, context, **keywords)
 
 
-class Prim_Properties(PropertyGroup):
+class PrimProperties(PropertyGroup):
+    """"Stored exposed variables relevant to the RenderPrimitive files"""
+
     lod: BoolVectorProperty(
         name='lod_mask',
         description='Set which LOD levels should be shown',
@@ -168,6 +167,8 @@ class Prim_Properties(PropertyGroup):
 
 
 class GLACIER_PT_PrimPropertiesPanel(bpy.types.Panel):
+    """"Adds a panel to the object window to show the Prim_Properties"""
+
     bl_idname = 'GLACIER_PT_PrimPropertiesPanel'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -198,7 +199,7 @@ class GLACIER_PT_PrimPropertiesPanel(bpy.types.Panel):
 
 
 classes = [
-    Prim_Properties,
+    PrimProperties,
     GLACIER_PT_PrimPropertiesPanel,
     ImportPRIM,
     ExportPRIM
@@ -210,7 +211,7 @@ def register():
         bpy.utils.register_class(c)
     bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
     bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
-    bpy.types.Mesh.prim_properties = PointerProperty(type=Prim_Properties)
+    bpy.types.Mesh.prim_properties = PointerProperty(type=PrimProperties)
 
 
 def unregister():
