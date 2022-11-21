@@ -580,7 +580,7 @@ class PrimMesh:
         br.seek(old_offset)  # reset offset to end of header, this is required for WeightedPrimMesh
 
     def write(self, br, flags):
-        self.update()
+        self.update(flags)
         sub_mesh_offset = self.sub_mesh.write(br, self, flags)
 
         header_offset = br.tell()
@@ -599,7 +599,7 @@ class PrimMesh:
 
         return header_offset
 
-    def update(self):
+    def update(self, flags):
         bb = self.sub_mesh.calc_bb()
         min = bb[0]
         max = bb[1]
@@ -631,6 +631,10 @@ class PrimMesh:
         # set UV bias
         self.tex_scale_bias[2] = (maxUV[0] + minUV[0]) * 0.5
         self.tex_scale_bias[3] = (maxUV[1] + minUV[1]) * 0.5
+
+        if flags.isLinkedObject():
+            self.pos_bias[3] = 0
+            self.pos_scale[3] = 0x7FFF
 
 
 class PrimMeshWeighted(PrimMesh):
