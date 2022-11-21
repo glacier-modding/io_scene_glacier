@@ -12,7 +12,8 @@ from bpy.props import (StringProperty,
                        BoolProperty,
                        BoolVectorProperty,
                        PointerProperty,
-                       IntProperty
+                       IntProperty,
+                       EnumProperty
                        )
 
 from bpy.types import (Panel,
@@ -104,7 +105,7 @@ class ImportPRIM(bpy.types.Operator, ImportHelper):
             arma_obj = bpy.data.objects.new(armature.name, armature)
             collection.objects.link(arma_obj)
 
-        meshes = bl_import_prim.load_prim(self, context, self.filepath, self.use_rig, self.rig_filepath)
+        meshes = bl_import_prim.load_prim(self, context, collection, self.filepath, self.use_rig, self.rig_filepath)
 
         if not meshes:
             return {'CANCELLED'}
@@ -149,7 +150,43 @@ class ExportPRIM(bpy.types.Operator, ExportHelper):
         return bl_export_prim.save_prim(self, context, **keywords)
 
 
+class Prim_Collection_Properties(PropertyGroup):
+    is_weighted: BoolProperty(
+        name='Weighted',
+        description='The prim is weigthed',
+    )
+
+    is_linked: BoolProperty(
+        name='Linked',
+        description='The prim is linked',
+    )
+
+class GLACIER_PT_PrimCollectionPropertiesPanel(bpy.types.Panel):
+    bl_idname = 'GLACIER_PT_PrimCollectionPropertiesPanel'
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = 'collection'
+    bl_category = 'Glacier'
+    bl_label = 'Prim Properties'
+
+    @classmethod
+    def poll(self, context):
+        return context.collection is not None
+
+    def draw(self, context):
+        coll = context.collection
+        layout = self.layout
+
+        layout.label(text="Flags:")
+        row = layout.row(align=True)
+        row.prop(coll.prim_collection_properties, "is_weighted")
+        row.prop(coll.prim_collection_properties, "is_linked")
+        row.enabled = False
+
+
+
 class Prim_Properties(PropertyGroup):
+
     lod: BoolVectorProperty(
         name='lod_mask',
         description='Set which LOD levels should be shown',
@@ -166,6 +203,30 @@ class Prim_Properties(PropertyGroup):
         max=255
     )
 
+    prim_type: EnumProperty(
+        name='',
+        description='The type of the prim',
+        items=[
+            ("PrimType.Unknown", "Unknown", "lmao idk"),
+            ("PrimType.ObjectHeader", "Object Header", "The header of an Object"),
+            ("PrimType.Mesh", "Mesh", ""),
+            ("PrimType.Decal", "Decal", ""),
+            ("PrimType.Sprites", "Sprite", ""),
+            ("PrimType.Shape", "Shape", ""),
+        ],
+        default="PrimType.Mesh",
+    )
+
+    prim_subtype: EnumProperty(
+        name='',
+        description='The type of the prim',
+        items=[
+            ("PrimObjectSubtype.Standard", "Standard", "pretty normal"),
+            ("PrimObjectSubtype.Linked", "Linked", ""),
+            ("PrimObjectSubtype.Weighted", "Weighted", "watch out for the skeleton"),
+        ],
+        default="PrimObjectSubtype.Standard",
+    )
 
 class GLACIER_PT_PrimPropertiesPanel(bpy.types.Panel):
     bl_idname = 'GLACIER_PT_PrimPropertiesPanel'
@@ -196,10 +257,22 @@ class GLACIER_PT_PrimPropertiesPanel(bpy.types.Panel):
         row = layout.row(align=True)
         row.prop(mesh.prim_properties, "material_id")
 
+        layout.label(text="Type:")
+        row = layout.row(align=True)
+        row.prop(mesh.prim_properties, "prim_type")
+        row.enabled = False
+
+        layout.label(text="Sub-Type:")
+        row = layout.row(align=True)
+        row.prop(mesh.prim_properties, "prim_subtype")
+        row.enabled = False
+
 
 classes = [
     Prim_Properties,
+    Prim_Collection_Properties,
     GLACIER_PT_PrimPropertiesPanel,
+    GLACIER_PT_PrimCollectionPropertiesPanel,
     ImportPRIM,
     ExportPRIM
 ]
@@ -211,6 +284,7 @@ def register():
     bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
     bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
     bpy.types.Mesh.prim_properties = PointerProperty(type=Prim_Properties)
+    bpy.types.Collection.prim_collection_properties = PointerProperty(type=Prim_Collection_Properties)
 
 
 def unregister():
@@ -219,6 +293,7 @@ def unregister():
     bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
     bpy.types.TOPBAR_MT_file_export.remove(menu_func_export)
     del bpy.types.Mesh.prim_properties
+    del bpy.types.Collection.prim_collection_properties
 
 
 def menu_func_import(self, context):

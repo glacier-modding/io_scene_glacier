@@ -13,7 +13,7 @@ class PrimObjectSubtype(IntEnum):
 
 
 class PrimType(IntEnum):
-    unknown = 0
+    Unknown = 0
     ObjectHeader = 1
     Mesh = 2
     Decal = 3

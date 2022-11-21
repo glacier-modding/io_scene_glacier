@@ -21,13 +21,16 @@ from ..file_borg import format as borg_format
 from .. import io_binary
 
 
-def load_prim(operator, context, filepath, use_rig, rig_filepath):
+def load_prim(operator, context, collection, filepath, use_rig, rig_filepath):
     fp = os.fsencode(filepath)
     file = open(fp, "rb")
     br = io_binary.BinaryReader(file)
     prim = prim_format.RenderPrimitve()
     prim.read(br)
     br.close()
+
+    collection.prim_collection_properties.is_weighted = prim.header.property_flags.isWeightedObject()
+    collection.prim_collection_properties.is_linked = prim.header.property_flags.isLinkedObject()
 
     borg = None
     if use_rig:
@@ -175,5 +178,7 @@ def load_prim_mesh(prim, borg, prim_name, meshIndex):
     for bit in range(8):
         mask.append(0 != (lod & (1 << bit)))
     mesh.prim_properties.lod = mask
+    mesh.prim_properties.prim_type = str(prim.header.object_table[meshIndex].prim_object.prims.prim_header.type)
+    mesh.prim_properties.prim_sub_type = str(prim.header.object_table[meshIndex].prim_object.sub_type)
 
     return mesh
