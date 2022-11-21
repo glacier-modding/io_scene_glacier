@@ -251,10 +251,13 @@ def load_borg(operator, context, filepath):
 
     bones = compute_bones(borg)
 
-    #for constr in borg.bone_constraints.bone_constraints:
-    #    print(borg.bone_definitions[constr.bone_index].name)
-    #    print(print(', '.join("%s: %s" % item for item in vars(constr).items())))
-    #    print()
+    for constr in borg.bone_constraints.bone_constraints:
+        print("bone_index", borg.bone_definitions[constr.bone_index].name)
+        print("upnode_parent_idx", borg.bone_definitions[constr.up_node_parent_idx].name)
+        for i, target in enumerate(constr.target_parent_idx):
+            print("target_parent_idx ", i, borg.bone_definitions[target].name)
+        print(print(',\n '.join("%s: %s" % item for item in vars(constr).items())))
+        print()
 
     blender_arma = bpy.data.objects.new('temp_obj', amt)
     bpy.context.collection.objects.link(blender_arma)
