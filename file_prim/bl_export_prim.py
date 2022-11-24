@@ -14,6 +14,9 @@ def save_prim(operator, context, filepath: str):
     Returns "FINISHED" when successful
     """
     prim = format.RenderPrimitve()
+    prim.header.prims.prim_header.draw_destination = bpy.context.collection.prim_collection_properties.draw_destination
+    prim.header.bone_rig_resource_index = bpy.context.collection.prim_collection_properties.bone_rig_resource_index
+
     prim.header.object_table = []
 
     mesh_obs = [o for o in bpy.context.collection.all_objects if o.type == 'MESH']
@@ -24,12 +27,39 @@ def save_prim(operator, context, filepath: str):
         material_id = ob.data.prim_properties.material_id
         prim_obj.prim_object.material_id = material_id
 
+        if ob.data.prim_properties.axis_lock[0]:
+            prim_obj.prim_object.properties.setXaxisLocked()
+
+        if ob.data.prim_properties.axis_lock[1]:
+            prim_obj.prim_object.properties.setYaxisLocked()
+
+        if ob.data.prim_properties.axis_lock[2]:
+            prim_obj.prim_object.properties.setZaxisLocked()
+
+        if ob.data.prim_properties.no_physics:
+            prim_obj.prim_object.properties.setNoPhysics()
+
         lod = bitArrToInt(ob.data.prim_properties.lod)
         prim_obj.prim_object.lodmask = lod
 
         prim_obj.sub_mesh = save_prim_sub_mesh(ob)
+        # Set subMesh properties
         if len(prim_obj.sub_mesh.vertexBuffer.vertices) > 10000:
-            prim_obj.prim_object.properties.setHighResulution()
+            prim_obj.prim_object.properties.setHighResolution()
+
+        if ob.data.prim_properties.use_mesh_color:
+            prim_obj.sub_mesh.prim_object.properties.setColor1()
+
+        prim_obj.prim_object.prims.prim_header.draw_destination = ob.data.prim_properties.draw_destination
+        prim_obj.sub_mesh.prim_object.variant_id = ob.data.prim_properties.variant_id
+        prim_obj.sub_mesh.prim_object.zbias = ob.data.prim_properties.z_bias
+        prim_obj.sub_mesh.prim_object.zoffset = ob.data.prim_properties.z_offset
+        if ob.data.prim_properties.use_mesh_color:
+            print("Set color to: ", [round(ob.data.prim_properties.mesh_color[0] * 255), round(ob.data.prim_properties.mesh_color[1] * 255), round(ob.data.prim_properties.mesh_color[2] * 255), round(ob.data.prim_properties.mesh_color[3] * 255)])
+            prim_obj.sub_mesh.prim_object.color1[0] = round(ob.data.prim_properties.mesh_color[0] * 255)
+            prim_obj.sub_mesh.prim_object.color1[1] = round(ob.data.prim_properties.mesh_color[1] * 255)
+            prim_obj.sub_mesh.prim_object.color1[2] = round(ob.data.prim_properties.mesh_color[2] * 255)
+            prim_obj.sub_mesh.prim_object.color1[3] = round(ob.data.prim_properties.mesh_color[3] * 255)
 
         prim.header.object_table.append(prim_obj)
 
@@ -163,7 +193,7 @@ def save_prim_sub_mesh(blender_obj):
     colors[:, 3] = prim_dots['colorA']
 
     for i, vertex in enumerate(prim_mesh.vertexBuffer.vertices):
-        #vertex = format.Vertex()
+        vertex = format.Vertex()
         vertex.position = positions[i]
         vertex.normal = normals[i]
         vertex.tangent = tangents[i]
@@ -171,7 +201,7 @@ def save_prim_sub_mesh(blender_obj):
         for tex_coord_i in range(len(mesh.uv_layers)):
             vertex.uv[tex_coord_i] = uvs[tex_coord_i, i]
         vertex.color = (colors[i] * 255).astype("uint8").tolist()
-        #prim_mesh.vertexBuffer.vertices[i] = vertex
+        prim_mesh.vertexBuffer.vertices[i] = vertex
 
     return prim_mesh
 

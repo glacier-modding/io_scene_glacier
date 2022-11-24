@@ -118,10 +118,23 @@ class PrimObjectPropertyFlags:
     def hasNoPhysicsProp(self):
         return self.bitfield & 0b1000000 == 64
 
-    def setHighResulution(self):
-        if not self.isHighResolution():
-            self.bitfield = self.bitfield + 8
+    def setXaxisLocked(self):
+        self.bitfield |= 0b1
 
+    def setYaxisLocked(self):
+        self.bitfield |= 0b10
+
+    def setZaxisLocked(self):
+        self.bitfield |= 0b100
+
+    def setHighResolution(self):
+        self.bitfield |= 0b1000
+
+    def setColor1(self):
+        self.bitfield |= 0b100000
+
+    def setNoPhysics(self):
+        self.bitfield |= 0b1000000
     def write(self, br):
         br.writeUByte(self.bitfield)
 
@@ -520,7 +533,6 @@ class PrimSubMesh:
         header_offset = br.tell()
         # IOI uses a cleared primMesh object. so let's clear it here as well
         self.prim_object.lodmask = 0x0
-        self.prim_object.color1 = [0, 0, 0, 0]
         self.prim_object.wire_color = 0x0
 
         # TODO: optimze this away

@@ -13,7 +13,9 @@ from bpy.props import (StringProperty,
                        BoolVectorProperty,
                        PointerProperty,
                        IntProperty,
-                       EnumProperty
+                       EnumProperty,
+                       FloatVectorProperty,
+                       IntVectorProperty
                        )
 
 from bpy.types import (Panel,
@@ -147,10 +149,30 @@ class ExportPRIM(bpy.types.Operator, ExportHelper):
         return bl_export_prim.save_prim(self, context, **keywords)
 
 
-class Prim_Collection_Properties(PropertyGroup):
-    is_weighted: BoolProperty(
-        name='Weighted',
-        description='The prim is weigthed',
+class PrimCollectionProperties(PropertyGroup):
+    draw_destination: IntProperty(
+        name="Draw Destination",
+        description="",
+        min=0,
+        max=255,
+        step=1,
+    )
+
+    bone_rig_resource_index: IntProperty(
+        name="Bone Rig Resource Index",
+        description="",
+        min=0,
+        max=1000,
+        step=1,
+    )
+
+    has_bones: BoolProperty(
+        name="Has Bones",
+        description="It do be having bones",
+    )
+
+    has_frames: BoolProperty(
+        name="Has Frames",
     )
 
     is_linked: BoolProperty(
@@ -158,13 +180,19 @@ class Prim_Collection_Properties(PropertyGroup):
         description='The prim is linked',
     )
 
+    is_weighted: BoolProperty(
+        name='Weighted',
+        description='The prim is weigthed',
+    )
+
+
 class GLACIER_PT_PrimCollectionPropertiesPanel(bpy.types.Panel):
     bl_idname = 'GLACIER_PT_PrimCollectionPropertiesPanel'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = 'collection'
     bl_category = 'Glacier'
-    bl_label = 'Prim Properties'
+    bl_label = 'Global Prim Properties'
 
     @classmethod
     def poll(self, context):
@@ -174,16 +202,31 @@ class GLACIER_PT_PrimCollectionPropertiesPanel(bpy.types.Panel):
         coll = context.collection
         layout = self.layout
 
+        layout.row(align=True).prop(coll.prim_collection_properties, "draw_destination")
+        layout.row(align=True).prop(coll.prim_collection_properties, "bone_rig_resource_index")
+
         layout.label(text="Flags:")
+
         row = layout.row(align=True)
-        row.prop(coll.prim_collection_properties, "is_weighted")
-        row.prop(coll.prim_collection_properties, "is_linked")
+        row.prop(coll.prim_collection_properties, "has_bones")
+        row.prop(coll.prim_collection_properties, "has_frames")
         row.enabled = False
 
+        row = layout.row(align=True)
+        row.prop(coll.prim_collection_properties, "is_linked")
+        row.prop(coll.prim_collection_properties, "is_weighted")
+        row.enabled = False
 
 
 class PrimProperties(PropertyGroup):
     """"Stored exposed variables relevant to the RenderPrimitive files"""
+    draw_destination: IntProperty(
+        name="Draw Destination",
+        description="",
+        min=0,
+        max=255,
+        step=1,
+    )
 
     lod: BoolVectorProperty(
         name='lod_mask',
@@ -194,7 +237,7 @@ class PrimProperties(PropertyGroup):
     )
 
     material_id: IntProperty(
-        name='',
+        name='Material ID',
         description='Set the Material ID',
         default=0,
         min=0,
@@ -202,7 +245,7 @@ class PrimProperties(PropertyGroup):
     )
 
     prim_type: EnumProperty(
-        name='',
+        name='Type',
         description='The type of the prim',
         items=[
             ("PrimType.Unknown", "Unknown", "lmao idk"),
@@ -216,7 +259,7 @@ class PrimProperties(PropertyGroup):
     )
 
     prim_subtype: EnumProperty(
-        name='',
+        name='Sub-Type',
         description='The type of the prim',
         items=[
             ("PrimObjectSubtype.Standard", "Standard", "pretty normal"),
@@ -225,6 +268,58 @@ class PrimProperties(PropertyGroup):
         ],
         default="PrimObjectSubtype.Standard",
     )
+
+    axis_lock: BoolVectorProperty(
+        name='',
+        description='Locks an axis',
+        size=3,
+        subtype='LAYER'
+    )
+
+    no_physics: BoolProperty(
+        name="No physics",
+    )
+
+    # properties found in PrimSubMesh
+
+    variant_id: IntProperty(
+        name='Variant ID',
+        description='Set the Material ID',
+        default=0,
+        min=0,
+        max=255
+    )
+
+    z_bias: IntProperty(
+        name='Z Bias',
+        description='Set the Material ID',
+        default=0,
+        min=0,
+        max=255
+    )
+
+    z_offset: IntProperty(
+        name='Z Offset',
+        description='Set the Material ID',
+        default=0,
+        min=0,
+        max=255
+    )
+
+    use_mesh_color: BoolProperty(
+        name="Use Mesh Color"
+    )
+
+    mesh_color: FloatVectorProperty(
+        name="Mesh Color",
+        description="Applies a global color to the mesh. Will replace all vertex colors!",
+        subtype="COLOR",
+        size=4,
+        min=0.0,
+        max=1.0,
+        default=(1.0, 1.0, 1.0, 1.0)
+    )
+
 
 class GLACIER_PT_PrimPropertiesPanel(bpy.types.Panel):
     """"Adds a panel to the object window to show the Prim_Properties"""
@@ -248,29 +343,65 @@ class GLACIER_PT_PrimPropertiesPanel(bpy.types.Panel):
         mesh = obj.data
 
         layout = self.layout
+
         layout.label(text="Lod mask:")
         row = layout.row(align=True)
         for i, name in enumerate(["high", "   ", "   ", "   ", "   ", "   ", "   ", "low"]):
             row.prop(mesh.prim_properties, "lod", index=i, text=name, toggle=True)
 
-        layout.label(text="Material ID:")
+        layout.label(text="Lock Axis:")
+        row = layout.row(align=True)
+        for i, name in enumerate(["X", "Y", "Z"]):
+            row.prop(mesh.prim_properties, "axis_lock", index=i, text=name, toggle=True)
+
+        layout.label(text="")
+        layout.use_property_split = True
+        layout.row(align=True).prop(mesh.prim_properties, "draw_destination")
+
         row = layout.row(align=True)
         row.prop(mesh.prim_properties, "material_id")
 
-        layout.label(text="Type:")
+        row = layout.row(align=True)
+        row.prop(mesh.prim_properties, "no_physics")
+
         row = layout.row(align=True)
         row.prop(mesh.prim_properties, "prim_type")
         row.enabled = False
 
-        layout.label(text="Sub-Type:")
-        row = layout.row(align=True)
+        row = layout.row()
         row.prop(mesh.prim_properties, "prim_subtype")
         row.enabled = False
+
+        #properties for PrimSubMesh
+        row = layout.row()
+        row.prop(mesh.prim_properties, "variant_id")
+
+        row = layout.row()
+        row.prop(mesh.prim_properties, "z_bias")
+
+        row = layout.row()
+        row.prop(mesh.prim_properties, "z_offset")
+
+        row = layout.row()
+        row.prop(mesh.prim_properties, "use_mesh_color")
+
+        row = layout.row()
+        row.prop(mesh.prim_properties, "mesh_color")
+        row.enabled = mesh.prim_properties.use_mesh_color
+
+        # TODO: add mesh buttons here
+        # This will act as a temporary way to edit cloth. at least until a in-blender editor is made.
+        # Button to export cloth data to json
+        # Button to import cloth data from json
+
+        # TODO: add trigger collision stuff
+        # A mesh picker to select the collision mesh
+        # A button to generate a new collision mesh
 
 
 classes = [
     PrimProperties,
-    Prim_Collection_Properties,
+    PrimCollectionProperties,
     GLACIER_PT_PrimPropertiesPanel,
     GLACIER_PT_PrimCollectionPropertiesPanel,
     ImportPRIM,
@@ -284,7 +415,7 @@ def register():
     bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
     bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
     bpy.types.Mesh.prim_properties = PointerProperty(type=PrimProperties)
-    bpy.types.Collection.prim_collection_properties = PointerProperty(type=Prim_Collection_Properties)
+    bpy.types.Collection.prim_collection_properties = PointerProperty(type=PrimCollectionProperties)
 
 
 def unregister():
