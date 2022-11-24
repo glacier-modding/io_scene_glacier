@@ -267,9 +267,10 @@ class BoneRig:
         self.pose_bones = []
         self.pose_bone_indices = []
         self.pose_entry_index = []
-        self.pose_bone_counts = []
+        self.pose_bone_count_array = []
         self.names_list = []
         self.face_bone_indices = []
+        self.bone_constraints = []
 
     def read(self, br):
         br.seek(br.readUInt64())
@@ -323,7 +324,7 @@ class BoneRig:
         self.pose_entry_index = br.readUIntVec(pose_bone_header.pose_count)
 
         br.seek(pose_bone_header.pose_bone_count_array_offset)
-        self.pose_bone_count = br.readUIntVec(pose_bone_header.pose_count)
+        self.pose_bone_count_array = br.readUIntVec(pose_bone_header.pose_count)
 
         # read names
         names_entry_index_array = []
@@ -357,7 +358,7 @@ class BoneRig:
         br.align(16)
 
         pose_bone_header.pose_bone_count_array_offset = br.tell()
-        br.writeUIntVec(self.pose_bone_count)
+        br.writeUIntVec(self.pose_bone_count_array)
         br.align(16)
 
         pose_bone_header.names_list_offset = br.tell()
