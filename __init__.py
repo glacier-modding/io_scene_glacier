@@ -1,7 +1,7 @@
 # ##### BEGIN LICENSE BLOCK #####
 #
 # io_scene_glacier
-# Copyright (c) 2020+, REDACTED
+# Copyright (c) 2022+, The Glacier Modding Team
 # All rights reserved.
 
 # Redistribution and use in source and binary forms, with or without modification,
@@ -38,7 +38,6 @@ bl_info = {
 
 import bpy
 from . import file_prim
-from . import file_vtxd
 from . import file_mjba
 from . import file_borg
 
@@ -69,12 +68,6 @@ class GlacierSettings(PropertyGroup):
 
             obj.hide_set(not should_show)
 
-        if all(self.show_lod):
-            print("All selected")
-
-        if not any(self.show_lod):
-            print("None selected")
-
         return None
 
     show_lod: BoolVectorProperty(
@@ -84,8 +77,6 @@ class GlacierSettings(PropertyGroup):
         size=8,
         subtype='LAYER',
         update=show_lod_update,
-        # get=None,
-        # set=None
     )
 
 
@@ -120,8 +111,7 @@ classes = [
 
 modules = [
     file_prim,
-    file_vtxd,
-    file_mjba,
+    # file_mjba, # WIP module. enable at own risk
     file_borg
 ]
 
