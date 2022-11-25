@@ -74,7 +74,7 @@ class ImportPRIM(bpy.types.Operator, ImportHelper):
             row = layout.row(align=True)
             row.prop(self, "use_rig")
             row = layout.row(align=True)
-            row.enabled = self.use_rig is not False
+            row.enabled = self.use_rig
             row.prop(self, "rig_filepath")
 
             if self.use_rig:
@@ -114,7 +114,7 @@ class ImportPRIM(bpy.types.Operator, ImportHelper):
                 obj.modifiers.new(name='Glacier Bonerig', type='ARMATURE')
                 obj.modifiers['Glacier Bonerig'].object = arma_obj
 
-            obj.data.polygons.foreach_set('use_smooth',  [True] * len(obj.data.polygons))
+            obj.data.polygons.foreach_set('use_smooth', [True] * len(obj.data.polygons))
 
             collection.objects.link(obj)
 
@@ -133,20 +133,36 @@ class ExportPRIM(bpy.types.Operator, ExportHelper):
     filename_ext = '.prim'
     filter_glob: StringProperty(default='*.prim', options={'HIDDEN'})
 
+    def get_collections(self, context):
+        items = [(col.name, col.name, "") for col in bpy.data.collections]
+        return items
+
+    export_collection: EnumProperty(
+        name='',
+        description='The collection to turn into a prim',
+        items=get_collections,
+        default=None,
+    )
+
     def draw(self, context):
         if ".prim" not in self.filepath.lower():
             return
 
         layout = self.layout
         layout.label(text="export options:")
+        row = layout.row(align=True)
+        row.prop(self, "export_collection")
 
     def execute(self, context):
         from . import bl_export_prim
         keywords = self.as_keywords(ignore=(
             'check_existing',
-            'filter_glob'
+            'filter_glob',
+            'export_collection'
         ))
-        return bl_export_prim.save_prim(self, context, **keywords)
+        print("selected coll", bpy.data.collections)
+        print("selected coll class", bpy.data.collections[self.export_collection])
+        return bl_export_prim.save_prim(bpy.data.collections[self.export_collection], **keywords)
 
 
 class PrimCollectionProperties(PropertyGroup):
@@ -372,7 +388,7 @@ class GLACIER_PT_PrimPropertiesPanel(bpy.types.Panel):
         row.prop(mesh.prim_properties, "prim_subtype")
         row.enabled = False
 
-        #properties for PrimSubMesh
+        # properties for PrimSubMesh
         row = layout.row()
         row.prop(mesh.prim_properties, "variant_id")
 

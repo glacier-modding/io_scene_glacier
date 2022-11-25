@@ -7,19 +7,19 @@ from . import format
 from .. import io_binary
 
 
-def save_prim(operator, context, filepath: str):
+def save_prim(collection, filepath: str):
     """
-    Export the selected mesh
+    Export the selected collection to a prim
     Writes to the given path.
     Returns "FINISHED" when successful
     """
     prim = format.RenderPrimitve()
-    prim.header.prims.prim_header.draw_destination = bpy.context.collection.prim_collection_properties.draw_destination
-    prim.header.bone_rig_resource_index = bpy.context.collection.prim_collection_properties.bone_rig_resource_index
+    prim.header.prims.prim_header.draw_destination = collection.prim_collection_properties.draw_destination
+    prim.header.bone_rig_resource_index = collection.prim_collection_properties.bone_rig_resource_index
 
     prim.header.object_table = []
 
-    mesh_obs = [o for o in bpy.context.collection.all_objects if o.type == 'MESH']
+    mesh_obs = [o for o in collection.all_objects if o.type == 'MESH']
     for ob in mesh_obs:
         prim_obj = format.PrimMesh()
         triangulate_object(ob)
