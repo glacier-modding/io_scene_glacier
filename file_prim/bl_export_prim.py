@@ -161,9 +161,9 @@ def save_prim_sub_mesh(blender_obj):
     colors[:, 1] = prim_dots['colorG']
     colors[:, 2] = prim_dots['colorB']
     colors[:, 3] = prim_dots['colorA']
-
+    
     for i, vertex in enumerate(prim_mesh.vertexBuffer.vertices):
-        #vertex = format.Vertex()
+        vertex = format.Vertex()
         vertex.position = positions[i]
         vertex.normal = normals[i]
         vertex.tangent = tangents[i]
@@ -171,7 +171,7 @@ def save_prim_sub_mesh(blender_obj):
         for tex_coord_i in range(len(mesh.uv_layers)):
             vertex.uv[tex_coord_i] = uvs[tex_coord_i, i]
         vertex.color = (colors[i] * 255).astype("uint8").tolist()
-        #prim_mesh.vertexBuffer.vertices[i] = vertex
+        prim_mesh.vertexBuffer.vertices[i] = vertex
 
     return prim_mesh
 
