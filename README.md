@@ -1,6 +1,7 @@
 # Glacier 2 Blender addon
 *View and create assets from the Glacier 2 game engine.*  
-<br/><br/>
+
+![lod_slider](https://user-images.githubusercontent.com/43296291/203970131-4080b2cb-c09e-49e4-b8a9-5aa9a9a61d50.gif)
 
 ## Supported Titles and Features
 The following games are supported by this addon:
