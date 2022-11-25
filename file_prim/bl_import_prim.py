@@ -21,7 +21,11 @@ def load_prim(operator, context, collection, filepath, use_rig, rig_filepath):
     br.close()
 
     collection.prim_collection_properties.draw_destination = prim.header.prims.prim_header.draw_destination
-    collection.prim_collection_properties.bone_rig_resource_index = prim.header.bone_rig_resource_index
+
+    if(prim.header.bone_rig_resource_index == 0xFFFFFFFF):
+        collection.prim_collection_properties.bone_rig_resource_index = -1
+    else:
+        collection.prim_collection_properties.bone_rig_resource_index = prim.header.bone_rig_resource_index
     collection.prim_collection_properties.has_bones = prim.header.property_flags.hasBones()
     collection.prim_collection_properties.has_frames = prim.header.property_flags.hasFrames()
     collection.prim_collection_properties.is_weighted = prim.header.property_flags.isWeightedObject()

@@ -44,7 +44,7 @@ def save_prim(operator, context, filepath: str):
 
         prim_obj.sub_mesh = save_prim_sub_mesh(ob)
         # Set subMesh properties
-        if len(prim_obj.sub_mesh.vertexBuffer.vertices) > 10000:
+        if len(prim_obj.sub_mesh.vertexBuffer.vertices) > 100000:
             prim_obj.prim_object.properties.setHighResolution()
 
         if ob.data.prim_properties.use_mesh_color:
