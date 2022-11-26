@@ -3,9 +3,10 @@ import bpy
 import bmesh
 import numpy as np
 
+
 from . import format
 from .. import io_binary
-
+from .. import BlenderUI
 
 def save_prim(collection, filepath: str):
     """
@@ -43,6 +44,9 @@ def save_prim(collection, filepath: str):
         prim_obj.prim_object.lodmask = lod
 
         prim_obj.sub_mesh = save_prim_sub_mesh(ob)
+
+        if prim_obj.sub_mesh is None:
+            return {'CANCELLED'}
         # Set subMesh properties
         if len(prim_obj.sub_mesh.vertexBuffer.vertices) > 100000:
             prim_obj.prim_object.properties.setHighResolution()
@@ -81,7 +85,11 @@ def save_prim_sub_mesh(blender_obj):
     mesh = blender_obj.to_mesh()
     prim_mesh = format.PrimSubMesh()
 
-    mesh.calc_tangents(uvmap="UVMap")
+    if blender_obj.data.uv_layers:
+        mesh.calc_tangents(uvmap="UVMap")
+    else:
+        BlenderUI.MessageBox("\"%s\" is missing a UV map" % mesh.name, "Exporting error", 'ERROR')
+        return None
 
     locs = get_positions(mesh, blender_obj.matrix_world.copy())
 
