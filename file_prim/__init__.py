@@ -2,6 +2,7 @@ import bpy
 import os
 
 from . import bl_utils_prim
+from .. import BlenderUI
 
 from bpy_extras.io_utils import (
     ImportHelper,
@@ -11,6 +12,7 @@ from bpy_extras.io_utils import (
 from bpy.props import (StringProperty,
                        BoolProperty,
                        BoolVectorProperty,
+                       CollectionProperty,
                        PointerProperty,
                        IntProperty,
                        EnumProperty,
@@ -35,10 +37,9 @@ class ImportPRIM(bpy.types.Operator, ImportHelper):
         options={'HIDDEN'},
     )
 
-    filepath: StringProperty(
-        name="PRIM",
-        description="Set path for the PRIM file",
-        subtype="FILE_PATH"
+    files: CollectionProperty(
+        name="File Path",
+        type=bpy.types.OperatorFileListElement,
     )
 
     use_rig: BoolProperty(
@@ -70,6 +71,8 @@ class ImportPRIM(bpy.types.Operator, ImportHelper):
         is_weighted_prim = bl_utils_prim.is_weighted(self.filepath)
         if not is_weighted_prim:
             layout.label(text="The selected prim does not support a rig", icon="ERROR")
+        elif len(self.files) -1:
+            layout.label(text="Rigs are not supported when batch importing")
         else:
             row = layout.row(align=True)
             row.prop(self, "use_rig")
@@ -92,35 +95,40 @@ class ImportPRIM(bpy.types.Operator, ImportHelper):
     def execute(self, context):
         from . import bl_import_prim
 
-        collection = bpy.data.collections.new(bpy.path.display_name_from_filepath(self.filepath))
+        prim_paths = ["%s\\%s" % (os.path.dirname(self.filepath), meshPaths.name) for meshPaths in self.files]
+        for prim_path in prim_paths:
 
-        self.rig_filepath = self.rig_filepath.replace(os.sep, '/')
+            collection = bpy.data.collections.new(bpy.path.display_name_from_filepath(prim_path))
 
-        arma_obj = None
-        if self.use_rig:
-            from ..file_borg import bl_import_borg
-            armature = bl_import_borg.load_borg(self, context, self.rig_filepath)
-            arma_obj = bpy.data.objects.new(armature.name, armature)
-            collection.objects.link(arma_obj)
+            self.rig_filepath = self.rig_filepath.replace(os.sep, '/')
 
-        meshes = bl_import_prim.load_prim(self, context, collection, self.filepath, self.use_rig, self.rig_filepath)
+            arma_obj = None
+            if self.use_rig:
+                from ..file_borg import bl_import_borg
+                armature = bl_import_borg.load_borg(self, context, self.rig_filepath)
+                arma_obj = bpy.data.objects.new(armature.name, armature)
+                collection.objects.link(arma_obj)
 
-        if not meshes:
-            return {'CANCELLED'}
 
-        for mesh in meshes:
-            obj = bpy.data.objects.new(mesh.name, mesh)
-            if self.use_rig and arma_obj:
-                obj.modifiers.new(name='Glacier Bonerig', type='ARMATURE')
-                obj.modifiers['Glacier Bonerig'].object = arma_obj
+            meshes = bl_import_prim.load_prim(self, context, collection, prim_path, self.use_rig, self.rig_filepath)
 
-            obj.data.polygons.foreach_set('use_smooth', [True] * len(obj.data.polygons))
+            if not meshes:
+                BlenderUI.MessageBox("Failed to import \"%s\"" % prim_path, "Importing error", 'ERROR')
+                return {'CANCELLED'}
 
-            collection.objects.link(obj)
+            for mesh in meshes:
+                obj = bpy.data.objects.new(mesh.name, mesh)
+                if self.use_rig and arma_obj:
+                    obj.modifiers.new(name='Glacier Bonerig', type='ARMATURE')
+                    obj.modifiers['Glacier Bonerig'].object = arma_obj
 
-        context.scene.collection.children.link(collection)
-        layer = bpy.context.view_layer
-        layer.update()
+                obj.data.polygons.foreach_set('use_smooth', [True] * len(obj.data.polygons))
+
+                collection.objects.link(obj)
+
+            context.scene.collection.children.link(collection)
+            layer = bpy.context.view_layer
+            layer.update()
 
         return {'FINISHED'}
 
