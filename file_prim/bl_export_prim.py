@@ -1,117 +1,25 @@
 import os
 import bpy
 import bmesh
-import mathutils as mu
 import numpy as np
 
-from bpy.props import (BoolProperty,
-                       FloatProperty,
-                       StringProperty,
-                       EnumProperty,
-                       )
-from bpy_extras.io_utils import (ImportHelper,
-                                 ExportHelper,
-                                 unpack_list,
-                                 unpack_face_list,
-                                 axis_conversion,
-                                 )
 
 from . import format
 from .. import io_binary
+from .. import BlenderUI
 
-
-def __get_positions(mesh, matrix):
-    # read the vertex locations
-    locs = np.empty(len(mesh.vertices) * 3, dtype=np.float32)
-    source = mesh.vertices
-    for vert in source:
-        vert.co = matrix @ vert.co
-
-    source.foreach_get('co', locs)
-    locs = locs.reshape(len(mesh.vertices), 3)
-
-    return locs
-
-
-def __get_normals(mesh):
-    """Get normal for each loop."""
-    normals = np.empty(len(mesh.loops) * 3, dtype=np.float32)
-    mesh.calc_normals_split()
-    mesh.loops.foreach_get('normal', normals)
-
-    normals = normals.reshape(len(mesh.loops), 3)
-
-    for ns in normals:
-        for axis in range(3):
-            if int(round(ns[axis])) != 0:
-                ns[axis] = round(ns[axis])
-            else:
-                ns[axis] = ns[axis] + (1 / 255)
-
-    return normals
-
-
-def __get_tangents(mesh):
-    """Get an array of the tangent for each loop."""
-    tangents = np.empty(len(mesh.loops) * 3, dtype=np.float32)
-    mesh.loops.foreach_get('tangent', tangents)
-    tangents = tangents.reshape(len(mesh.loops), 3)
-
-    for ts in tangents:
-        for axis in range(3):
-            if int(round(ts[axis])) != 0:
-                ts[axis] = round(ts[axis])
-            else:
-                ts[axis] = ts[axis] + (1 / 255)
-
-    return tangents
-
-
-def __get_bitangents(mesh):
-    """Get an array of the tangent for each loop."""
-    bitangents = np.empty(len(mesh.loops) * 3, dtype=np.float32)
-    mesh.loops.foreach_get('bitangent', bitangents)
-    bitangents = bitangents.reshape(len(mesh.loops), 3)
-
-    for bs in bitangents:
-        for axis in range(3):
-            if int(round(bs[axis])) != 0:
-                bs[axis] = round(bs[axis])
-            else:
-                bs[axis] = bs[axis] + (1 / 255)
-
-    return bitangents
-
-
-def __get_uvs(mesh, uv_i):
-    layer = mesh.uv_layers[uv_i]
-    uvs = np.empty(len(mesh.loops) * 2, dtype=np.float32)
-    layer.data.foreach_get('uv', uvs)
-    uvs = uvs.reshape(len(mesh.loops), 2)
-
-    # u,v -> u,1-v
-    uvs[:, 1] *= -1
-    uvs[:, 1] += 1
-
-    return uvs
-
-
-def __get_colors(mesh, color_i):
-    colors = np.empty(len(mesh.loops) * 4, dtype=np.float32)
-    layer = mesh.vertex_colors[color_i]
-    mesh.color_attributes[layer.name].data.foreach_get('color', colors)
-    colors = colors.reshape(len(mesh.loops), 4)
-    # colors are already linear, no need to switch color space
-    return colors
-
-
-def save_prim(operator, context, filepath):
-    # Export the selected mesh
-    scene = context.scene
+def save_prim(collection, filepath: str):
+    """
+    Export the selected collection to a prim
+    Writes to the given path.
+    Returns "FINISHED" when successful
+    """
     prim = format.RenderPrimitve()
+    prim.header.bone_rig_resource_index = collection.prim_collection_properties.bone_rig_resource_index
+
     prim.header.object_table = []
 
-    mesh_obs = [o for o in bpy.context.collection.all_objects if o.type == 'MESH']
+    mesh_obs = [o for o in collection.all_objects if o.type == 'MESH']
     for ob in mesh_obs:
         prim_obj = format.PrimMesh()
         triangulate_object(ob)
@@ -119,20 +27,48 @@ def save_prim(operator, context, filepath):
         material_id = ob.data.prim_properties.material_id
         prim_obj.prim_object.material_id = material_id
 
+        if ob.data.prim_properties.axis_lock[0]:
+            prim_obj.prim_object.properties.setXaxisLocked()
+
+        if ob.data.prim_properties.axis_lock[1]:
+            prim_obj.prim_object.properties.setYaxisLocked()
+
+        if ob.data.prim_properties.axis_lock[2]:
+            prim_obj.prim_object.properties.setZaxisLocked()
+
+        if ob.data.prim_properties.no_physics:
+            prim_obj.prim_object.properties.setNoPhysics()
+
         lod = bitArrToInt(ob.data.prim_properties.lod)
         prim_obj.prim_object.lodmask = lod
-        print("now lodmask", prim_obj.prim_object.lodmask, "is", lod)
 
         prim_obj.sub_mesh = save_prim_sub_mesh(ob)
-        if len(prim_obj.sub_mesh.vertexBuffer.vertices) > 10000:
-            prim_obj.prim_object.properties.setHighResulution()
+
+        if prim_obj.sub_mesh is None:
+            return {'CANCELLED'}
+        # Set subMesh properties
+        if len(prim_obj.sub_mesh.vertexBuffer.vertices) > 100000:
+            prim_obj.prim_object.properties.setHighResolution()
+
+        if ob.data.prim_properties.use_mesh_color:
+            prim_obj.sub_mesh.prim_object.properties.setColor1()
+
+        prim_obj.sub_mesh.prim_object.variant_id = ob.data.prim_properties.variant_id
+        prim_obj.sub_mesh.prim_object.zbias = ob.data.prim_properties.z_bias
+        prim_obj.sub_mesh.prim_object.zoffset = ob.data.prim_properties.z_offset
+        if ob.data.prim_properties.use_mesh_color:
+            print("Set color to: ", [round(ob.data.prim_properties.mesh_color[0] * 255), round(ob.data.prim_properties.mesh_color[1] * 255), round(ob.data.prim_properties.mesh_color[2] * 255), round(ob.data.prim_properties.mesh_color[3] * 255)])
+            prim_obj.sub_mesh.prim_object.color1[0] = round(ob.data.prim_properties.mesh_color[0] * 255)
+            prim_obj.sub_mesh.prim_object.color1[1] = round(ob.data.prim_properties.mesh_color[1] * 255)
+            prim_obj.sub_mesh.prim_object.color1[2] = round(ob.data.prim_properties.mesh_color[2] * 255)
+            prim_obj.sub_mesh.prim_object.color1[3] = round(ob.data.prim_properties.mesh_color[3] * 255)
 
         prim.header.object_table.append(prim_obj)
 
-    exportFile = os.fsencode(filepath)
-    if os.path.exists(exportFile):
-        os.remove(exportFile)
-    bre = io_binary.BinaryReader(open(exportFile, 'wb'))
+    export_file = os.fsencode(filepath)
+    if os.path.exists(export_file):
+        os.remove(export_file)
+    bre = io_binary.BinaryReader(open(export_file, 'wb'))
     prim.write(bre)
     bre.close()
 
@@ -140,12 +76,20 @@ def save_prim(operator, context, filepath):
 
 
 def save_prim_sub_mesh(blender_obj):
+    """
+    Export a blender mesh to a PrimSubMesh
+    Returns a PrimSubMesh
+    """
     mesh = blender_obj.to_mesh()
     prim_mesh = format.PrimSubMesh()
 
-    mesh.calc_tangents(uvmap="UVMap")
+    if blender_obj.data.uv_layers:
+        mesh.calc_tangents(uvmap="UVMap")
+    else:
+        BlenderUI.MessageBox("\"%s\" is missing a UV map" % mesh.name, "Exporting error", 'ERROR')
+        return None
 
-    locs = __get_positions(mesh, blender_obj.matrix_world.copy())
+    locs = get_positions(mesh, blender_obj.matrix_world.copy())
 
     dot_fields = [('vertex_index', np.uint32)]
     dot_fields += [('nx', np.float32), ('ny', np.float32), ('nz', np.float32)]
@@ -167,32 +111,32 @@ def save_prim_sub_mesh(blender_obj):
     dots['vertex_index'] = vidxs
     del vidxs
 
-    normals = __get_normals(mesh)
+    normals = get_normals(mesh)
     dots['nx'] = normals[:, 0]
     dots['ny'] = normals[:, 1]
     dots['nz'] = normals[:, 2]
     del normals
 
-    tangents = __get_tangents(mesh)
+    tangents = get_tangents(mesh)
     dots['tx'] = tangents[:, 0]
     dots['ty'] = tangents[:, 1]
     dots['tz'] = tangents[:, 2]
     del tangents
 
-    bitangents = __get_bitangents(mesh)
+    bitangents = get_bitangents(mesh)
     dots['bx'] = bitangents[:, 0]
     dots['by'] = bitangents[:, 1]
     dots['bz'] = bitangents[:, 2]
     del bitangents
 
     for uv_i in range(len(mesh.uv_layers)):
-        uvs = __get_uvs(mesh, uv_i)
+        uvs = get_uvs(mesh, uv_i)
         dots['uv%dx' % uv_i] = uvs[:, 0]
         dots['uv%dy' % uv_i] = uvs[:, 1]
         del uvs
 
     if len(mesh.vertex_colors) > 0:
-        colors = __get_colors(mesh, 0)
+        colors = get_colors(mesh, 0)
         dots['colorR'] = colors[:, 0]
         dots['colorG'] = colors[:, 1]
         dots['colorB'] = colors[:, 2]
@@ -253,9 +197,8 @@ def save_prim_sub_mesh(blender_obj):
     colors[:, 1] = prim_dots['colorG']
     colors[:, 2] = prim_dots['colorB']
     colors[:, 3] = prim_dots['colorA']
-
-    i = 0
-    for vertex in prim_mesh.vertexBuffer.vertices:
+    
+    for i, vertex in enumerate(prim_mesh.vertexBuffer.vertices):
         vertex = format.Vertex()
         vertex.position = positions[i]
         vertex.normal = normals[i]
@@ -265,28 +208,110 @@ def save_prim_sub_mesh(blender_obj):
             vertex.uv[tex_coord_i] = uvs[tex_coord_i, i]
         vertex.color = (colors[i] * 255).astype("uint8").tolist()
         prim_mesh.vertexBuffer.vertices[i] = vertex
-        i = i + 1
 
     return prim_mesh
 
+
+def get_positions(mesh, matrix):
+    # read the vertex locations
+    locs = np.empty(len(mesh.vertices) * 3, dtype=np.float32)
+    source = mesh.vertices
+    for vert in source:
+        vert.co = matrix @ vert.co
+
+    source.foreach_get('co', locs)
+    locs = locs.reshape(len(mesh.vertices), 3)
+
+    return locs
+
+
+def get_normals(mesh):
+    """Get normal for each loop."""
+    normals = np.empty(len(mesh.loops) * 3, dtype=np.float32)
+    mesh.calc_normals_split()
+    mesh.loops.foreach_get('normal', normals)
+
+    normals = normals.reshape(len(mesh.loops), 3)
+
+    for ns in normals:
+        for axis in range(3):
+            if int(round(ns[axis])) != 0:
+                ns[axis] = round(ns[axis])
+            else:
+                ns[axis] = ns[axis] + (1 / 255)
+
+    return normals
+
+
+def get_tangents(mesh):
+    """Get an array of the tangent for each loop."""
+    tangents = np.empty(len(mesh.loops) * 3, dtype=np.float32)
+    mesh.loops.foreach_get('tangent', tangents)
+    tangents = tangents.reshape(len(mesh.loops), 3)
+
+    for ts in tangents:
+        for axis in range(3):
+            if int(round(ts[axis])) != 0:
+                ts[axis] = round(ts[axis])
+            else:
+                ts[axis] = ts[axis] + (1 / 255)
+
+    return tangents
+
+
+def get_bitangents(mesh):
+    """Get an array of the tangent for each loop."""
+    bitangents = np.empty(len(mesh.loops) * 3, dtype=np.float32)
+    mesh.loops.foreach_get('bitangent', bitangents)
+    bitangents = bitangents.reshape(len(mesh.loops), 3)
+
+    for bs in bitangents:
+        for axis in range(3):
+            if int(round(bs[axis])) != 0:
+                bs[axis] = round(bs[axis])
+            else:
+                bs[axis] = bs[axis] + (1 / 255)
+
+    return bitangents
+
+
+def get_uvs(mesh, uv_i):
+    layer = mesh.uv_layers[uv_i]
+    uvs = np.empty(len(mesh.loops) * 2, dtype=np.float32)
+    layer.data.foreach_get('uv', uvs)
+    uvs = uvs.reshape(len(mesh.loops), 2)
+
+    # u,v -> u,1-v
+    uvs[:, 1] *= -1
+    uvs[:, 1] += 1
+
+    return uvs
+
+
+def get_colors(mesh, color_i):
+    colors = np.empty(len(mesh.loops) * 4, dtype=np.float32)
+    layer = mesh.vertex_colors[color_i]
+    mesh.color_attributes[layer.name].data.foreach_get('color', colors)
+    colors = colors.reshape(len(mesh.loops), 4)
+    return colors
+
+
 def bitArrToInt(arr):
-    lodStr = ""
+    lod_str = ""
     for bit in arr:
         if bit:
-            lodStr = "1" + lodStr
+            lod_str = "1" + lod_str
         else:
-            lodStr = "0" + lodStr
-    return int(lodStr, 2)
+            lod_str = "0" + lod_str
+    return int(lod_str, 2)
+
 
 def triangulate_object(obj):
     me = obj.data
-    # Get a BMesh representation
     bm = bmesh.new()
     bm.from_mesh(me)
 
     bmesh.ops.triangulate(bm, faces=bm.faces[:])
-    # V2.79 : bmesh.ops.triangulate(bm, faces=bm.faces[:], quad_method=0, ngon_method=0)
 
-    # Finish up, write the bmesh back to the mesh
     bm.to_mesh(me)
     bm.free()
