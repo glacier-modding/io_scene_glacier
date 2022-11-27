@@ -48,7 +48,8 @@ class ImportPRIM(bpy.types.Operator, ImportHelper):
     )
 
     rig_filepath: StringProperty(
-        name="BoneRig Path"
+        name="BoneRig Path",
+        description="Path to the BoneRig (BORG) file",
     )
 
     use_aloc: BoolProperty(
@@ -57,7 +58,8 @@ class ImportPRIM(bpy.types.Operator, ImportHelper):
     )
 
     aloc_filepath: StringProperty(
-        name="Collision Path"
+        name="Collision Path",
+        description="Path to the Collision (ALOC) file",
     )
 
     def draw(self, context):
@@ -311,7 +313,7 @@ class PrimProperties(PropertyGroup):
 
     variant_id: IntProperty(
         name='Variant ID',
-        description='Set the Material ID',
+        description='Set the Variant ID',
         default=0,
         min=0,
         max=255
@@ -319,7 +321,7 @@ class PrimProperties(PropertyGroup):
 
     z_bias: IntProperty(
         name='Z Bias',
-        description='Set the Material ID',
+        description='Set the Z Bias',
         default=0,
         min=0,
         max=255
@@ -327,7 +329,7 @@ class PrimProperties(PropertyGroup):
 
     z_offset: IntProperty(
         name='Z Offset',
-        description='Set the Material ID',
+        description='Set the Z Offset',
         default=0,
         min=0,
         max=255
