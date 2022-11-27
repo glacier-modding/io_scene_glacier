@@ -195,7 +195,7 @@ class PrimCollectionProperties(PropertyGroup):
 
     has_bones: BoolProperty(
         name="Has Bones",
-        description="It do be having bones",
+        description="The prim has bones",
     )
 
     has_frames: BoolProperty(
@@ -275,7 +275,7 @@ class PrimProperties(PropertyGroup):
         name='Type',
         description='The type of the prim',
         items=[
-            ("PrimType.Unknown", "Unknown", "lmao idk"),
+            ("PrimType.Unknown", "Unknown", ""),
             ("PrimType.ObjectHeader", "Object Header", "The header of an Object"),
             ("PrimType.Mesh", "Mesh", ""),
             ("PrimType.Decal", "Decal", ""),
@@ -289,9 +289,9 @@ class PrimProperties(PropertyGroup):
         name='Sub-Type',
         description='The type of the prim',
         items=[
-            ("PrimObjectSubtype.Standard", "Standard", "pretty normal"),
+            ("PrimObjectSubtype.Standard", "Standard", ""),
             ("PrimObjectSubtype.Linked", "Linked", ""),
-            ("PrimObjectSubtype.Weighted", "Weighted", "watch out for the skeleton"),
+            ("PrimObjectSubtype.Weighted", "Weighted", ""),
         ],
         default="PrimObjectSubtype.Standard",
     )
