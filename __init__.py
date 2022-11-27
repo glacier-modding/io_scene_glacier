@@ -5,6 +5,7 @@ bl_info = {
     "blender": (3, 0, 0),
     "wiki_url": "",
     "tracker_url": "",
+    "category": "Import-Export",
 }
 
 import bpy
