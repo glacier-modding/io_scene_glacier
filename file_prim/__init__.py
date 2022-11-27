@@ -209,7 +209,7 @@ class PrimCollectionProperties(PropertyGroup):
 
     is_weighted: BoolProperty(
         name='Weighted',
-        description='The prim is weigthed',
+        description='The prim is weighted',
     )
 
 
