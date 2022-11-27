@@ -188,8 +188,8 @@ def load_prim_mesh(prim, borg, prim_name: str, mesh_index: int):
     mesh.prim_properties.no_physics = prim_mesh_obj.properties.hasNoPhysicsProp()
 
     mesh.prim_properties.variant_id = prim_sub_mesh_obj.variant_id
-    mesh.prim_properties.z_bias = prim_sub_mesh_obj.zbias
-    mesh.prim_properties.z_offset = prim_sub_mesh_obj.zoffset
+    mesh.prim_properties.z_bias = prim_mesh_obj.zbias
+    mesh.prim_properties.z_offset = prim_mesh_obj.zoffset
     mesh.prim_properties.use_mesh_color = prim_sub_mesh_obj.properties.useColor1()
     mesh.prim_properties.mesh_color = [prim_sub_mesh_obj.color1[0]/255,
                                        prim_sub_mesh_obj.color1[1]/255,

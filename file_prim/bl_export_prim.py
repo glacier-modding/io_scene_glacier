@@ -54,8 +54,8 @@ def save_prim(collection, filepath: str):
             prim_obj.sub_mesh.prim_object.properties.setColor1()
 
         prim_obj.sub_mesh.prim_object.variant_id = ob.data.prim_properties.variant_id
-        prim_obj.sub_mesh.prim_object.zbias = ob.data.prim_properties.z_bias
-        prim_obj.sub_mesh.prim_object.zoffset = ob.data.prim_properties.z_offset
+        prim_obj.prim_object.zbias = ob.data.prim_properties.z_bias
+        prim_obj.prim_object.zoffset = ob.data.prim_properties.z_offset
         if ob.data.prim_properties.use_mesh_color:
             print("Set color to: ", [round(ob.data.prim_properties.mesh_color[0] * 255), round(ob.data.prim_properties.mesh_color[1] * 255), round(ob.data.prim_properties.mesh_color[2] * 255), round(ob.data.prim_properties.mesh_color[3] * 255)])
             prim_obj.sub_mesh.prim_object.color1[0] = round(ob.data.prim_properties.mesh_color[0] * 255)
