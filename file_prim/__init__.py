@@ -71,7 +71,7 @@ class ImportPRIM(bpy.types.Operator, ImportHelper):
         is_weighted_prim = bl_utils_prim.is_weighted(self.filepath)
         if not is_weighted_prim:
             layout.label(text="The selected prim does not support a rig", icon="ERROR")
-        elif len(self.files) -1:
+        elif len(self.files) - 1:
             layout.label(text="Rigs are not supported when batch importing")
         else:
             row = layout.row(align=True)
@@ -109,7 +109,6 @@ class ImportPRIM(bpy.types.Operator, ImportHelper):
                 arma_obj = bpy.data.objects.new(armature.name, armature)
                 collection.objects.link(arma_obj)
 
-
             meshes = bl_import_prim.load_prim(self, context, collection, prim_path, self.use_rig, self.rig_filepath)
 
             if not meshes:
@@ -143,6 +142,11 @@ class ExportPRIM(bpy.types.Operator, ExportHelper):
 
     def get_collections(self, context):
         items = [(col.name, col.name, "") for col in bpy.data.collections]
+
+        for i, coll_name in enumerate(items):
+            if coll_name[0] == bpy.context.collection.name:
+                items[0], items[i] = items[i], items[0]
+
         return items
 
     export_collection: EnumProperty(
@@ -168,8 +172,7 @@ class ExportPRIM(bpy.types.Operator, ExportHelper):
             'filter_glob',
             'export_collection'
         ))
-        print("selected coll", bpy.data.collections)
-        print("selected coll class", bpy.data.collections[self.export_collection])
+
         return bl_export_prim.save_prim(bpy.data.collections[self.export_collection], **keywords)
 
 
