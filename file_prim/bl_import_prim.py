@@ -20,9 +20,7 @@ def load_prim(operator, context, collection, filepath, use_rig, rig_filepath):
     prim.read(br)
     br.close()
 
-    collection.prim_collection_properties.draw_destination = prim.header.prims.prim_header.draw_destination
-
-    if(prim.header.bone_rig_resource_index == 0xFFFFFFFF):
+    if prim.header.bone_rig_resource_index == 0xFFFFFFFF:
         collection.prim_collection_properties.bone_rig_resource_index = -1
     else:
         collection.prim_collection_properties.bone_rig_resource_index = prim.header.bone_rig_resource_index
@@ -181,7 +179,6 @@ def load_prim_mesh(prim, borg, prim_name: str, mesh_index: int):
     mesh.prim_properties.lod = mask
 
     mesh.prim_properties.material_id = prim_mesh_obj.material_id
-    mesh.prim_properties.draw_destination = prim_mesh_obj.prims.prim_header.draw_destination
     mesh.prim_properties.prim_type = str(prim_mesh_obj.prims.prim_header.type)
     mesh.prim_properties.prim_sub_type = str(prim_mesh_obj.sub_type)
 

@@ -15,7 +15,6 @@ def save_prim(collection, filepath: str):
     Returns "FINISHED" when successful
     """
     prim = format.RenderPrimitve()
-    prim.header.prims.prim_header.draw_destination = collection.prim_collection_properties.draw_destination
     prim.header.bone_rig_resource_index = collection.prim_collection_properties.bone_rig_resource_index
 
     prim.header.object_table = []
@@ -54,7 +53,6 @@ def save_prim(collection, filepath: str):
         if ob.data.prim_properties.use_mesh_color:
             prim_obj.sub_mesh.prim_object.properties.setColor1()
 
-        prim_obj.prim_object.prims.prim_header.draw_destination = ob.data.prim_properties.draw_destination
         prim_obj.sub_mesh.prim_object.variant_id = ob.data.prim_properties.variant_id
         prim_obj.sub_mesh.prim_object.zbias = ob.data.prim_properties.z_bias
         prim_obj.sub_mesh.prim_object.zoffset = ob.data.prim_properties.z_offset

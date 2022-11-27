@@ -179,13 +179,6 @@ class ExportPRIM(bpy.types.Operator, ExportHelper):
 
 
 class PrimCollectionProperties(PropertyGroup):
-    draw_destination: IntProperty(
-        name="Draw Destination",
-        description="",
-        min=0,
-        max=255,
-        step=1,
-    )
 
     bone_rig_resource_index: IntProperty(
         name="Bone Rig Resource Index",
@@ -232,7 +225,6 @@ class GLACIER_PT_PrimCollectionPropertiesPanel(bpy.types.Panel):
         coll = context.collection
         layout = self.layout
 
-        layout.row(align=True).prop(coll.prim_collection_properties, "draw_destination")
         layout.row(align=True).prop(coll.prim_collection_properties, "bone_rig_resource_index")
 
         layout.label(text="Flags:")
@@ -250,13 +242,6 @@ class GLACIER_PT_PrimCollectionPropertiesPanel(bpy.types.Panel):
 
 class PrimProperties(PropertyGroup):
     """"Stored exposed variables relevant to the RenderPrimitive files"""
-    draw_destination: IntProperty(
-        name="Draw Destination",
-        description="",
-        min=0,
-        max=255,
-        step=1,
-    )
 
     lod: BoolVectorProperty(
         name='lod_mask',
@@ -384,9 +369,8 @@ class GLACIER_PT_PrimPropertiesPanel(bpy.types.Panel):
         for i, name in enumerate(["X", "Y", "Z"]):
             row.prop(mesh.prim_properties, "axis_lock", index=i, text=name, toggle=True)
 
-        layout.label(text="")
         layout.use_property_split = True
-        layout.row(align=True).prop(mesh.prim_properties, "draw_destination")
+        layout.row(align=True).label(text="")
 
         row = layout.row(align=True)
         row.prop(mesh.prim_properties, "material_id")
