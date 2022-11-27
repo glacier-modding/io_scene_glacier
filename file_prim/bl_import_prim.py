@@ -7,7 +7,7 @@ from ..file_borg import format as borg_format
 from .. import io_binary
 
 
-def load_prim(operator, context, filepath, use_rig, rig_filepath):
+def load_prim(operator, context, collection, filepath, use_rig, rig_filepath):
     """Imports a mesh from the given path"""
 
     prim_name = bpy.path.display_name_from_filepath(filepath)
@@ -19,6 +19,17 @@ def load_prim(operator, context, filepath, use_rig, rig_filepath):
     prim = prim_format.RenderPrimitve()
     prim.read(br)
     br.close()
+
+    collection.prim_collection_properties.draw_destination = prim.header.prims.prim_header.draw_destination
+
+    if(prim.header.bone_rig_resource_index == 0xFFFFFFFF):
+        collection.prim_collection_properties.bone_rig_resource_index = -1
+    else:
+        collection.prim_collection_properties.bone_rig_resource_index = prim.header.bone_rig_resource_index
+    collection.prim_collection_properties.has_bones = prim.header.property_flags.hasBones()
+    collection.prim_collection_properties.has_frames = prim.header.property_flags.hasFrames()
+    collection.prim_collection_properties.is_weighted = prim.header.property_flags.isWeightedObject()
+    collection.prim_collection_properties.is_linked = prim.header.property_flags.isLinkedObject()
 
     borg = None
     if use_rig:
@@ -65,7 +76,7 @@ def load_prim_coli(prim, prim_name: str, mesh_index: int):
         scale_z = (z1 - z) / 2
 
         bpy.ops.mesh.primitive_cube_add(scale=(scale_x, scale_y, scale_z), calc_uvs=True, align='WORLD',
-                                               location=(box_x, box_y, box_z))
+                                        location=(box_x, box_y, box_z))
         ob = bpy.context.object
         me = ob.data
         ob.name = (str(prim_name) + "_" + str(mesh_index) + "_Coli")
@@ -159,14 +170,33 @@ def load_prim_mesh(prim, borg, prim_name: str, mesh_index: int):
     mesh.validate()
     mesh.update()
 
-    # set properties
-    material_id = prim.header.object_table[mesh_index].prim_object.material_id
-    mesh.prim_properties.material_id = material_id
+    # write the additional properties to the blender structure
+    prim_mesh_obj = prim.header.object_table[mesh_index].prim_object
+    prim_sub_mesh_obj = prim.header.object_table[mesh_index].sub_mesh.prim_object
 
-    lod = prim.header.object_table[mesh_index].prim_object.lodmask
+    lod = prim_mesh_obj.lodmask
     mask = []
     for bit in range(8):
         mask.append(0 != (lod & (1 << bit)))
     mesh.prim_properties.lod = mask
+
+    mesh.prim_properties.material_id = prim_mesh_obj.material_id
+    mesh.prim_properties.draw_destination = prim_mesh_obj.prims.prim_header.draw_destination
+    mesh.prim_properties.prim_type = str(prim_mesh_obj.prims.prim_header.type)
+    mesh.prim_properties.prim_sub_type = str(prim_mesh_obj.sub_type)
+
+    mesh.prim_properties.axis_lock = [prim_mesh_obj.properties.isXaxisLocked(),
+                                      prim_mesh_obj.properties.isYaxisLocked(),
+                                      prim_mesh_obj.properties.isZaxisLocked()]
+    mesh.prim_properties.no_physics = prim_mesh_obj.properties.hasNoPhysicsProp()
+
+    mesh.prim_properties.variant_id = prim_sub_mesh_obj.variant_id
+    mesh.prim_properties.z_bias = prim_sub_mesh_obj.zbias
+    mesh.prim_properties.z_offset = prim_sub_mesh_obj.zoffset
+    mesh.prim_properties.use_mesh_color = prim_sub_mesh_obj.properties.useColor1()
+    mesh.prim_properties.mesh_color = [prim_sub_mesh_obj.color1[0]/255,
+                                       prim_sub_mesh_obj.color1[1]/255,
+                                       prim_sub_mesh_obj.color1[2]/255,
+                                       prim_sub_mesh_obj.color1[3]/255]
 
     return mesh
