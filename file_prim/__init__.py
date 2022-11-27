@@ -190,6 +190,7 @@ class PrimCollectionProperties(PropertyGroup):
     bone_rig_resource_index: IntProperty(
         name="Bone Rig Resource Index",
         description="",
+        default=-1,
         min=-1,
         max=1000,
         step=1,

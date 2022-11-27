@@ -818,7 +818,12 @@ class PrimObjectHeader:
         header_offset = br.tell()
         self.prims.write(br)
         self.property_flags.write(br)
-        br.writeUInt(self.bone_rig_resource_index)
+
+        if self.bone_rig_resource_index < 0:
+            br.writeUInt(0xFFFFFFFF)
+        else:
+            br.writeUInt(self.bone_rig_resource_index)
+
         br.writeUInt(len(obj_offsets))
         br.writeUInt(obj_table_offset)
 
