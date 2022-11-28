@@ -15,12 +15,12 @@ The addon supports the following formats:
 | Extension 	| Description 						| Can import 					| Can export 					|
 |---------------|-----------------------------------|:-----------------------------:|:-----------------------------:|
 | .prim			| Standard RenderPrimitive			| Yes							| Yes							|
-| .weightedprim	| Weighted RenderPrimitive			| Yes							| Partial (Exports to standard)	|
-| .linkedprim	| Linked RenderPrimitive			| Yes							| Partial (Exports to standard)	|
+| .weightedprim	| Weighted RenderPrimitive			| Yes							| No	|
+| .linkedprim	| Linked RenderPrimitive			| Yes							| No	|
 | .borg			| AnimationBoneData 				| Yes							| No							|
 | .mjba			| MorphemeJointBoneAnimationData	| No							| No							|
 | .mrtr			| MorphemeRuntimeRig				| No							| No							|
-| .vtxd			| VertexData						| Yes							| No							|
+| .vtxd			| VertexData						| No							| No							|
  
 *Support for more formats or titles may be added in the future*
  
