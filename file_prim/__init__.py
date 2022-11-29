@@ -69,28 +69,28 @@ class ImportPRIM(bpy.types.Operator, ImportHelper):
 
         layout = self.layout
         layout.label(text="import options:")
+        if self.filepath:
+            is_weighted_prim = bl_utils_prim.is_weighted(self.filepath)
+            if not is_weighted_prim:
+                layout.label(text="The selected prim does not support a rig", icon="ERROR")
+            elif len(self.files) - 1:
+                layout.label(text="Rigs are not supported when batch importing")
+            else:
+                row = layout.row(align=True)
+                row.prop(self, "use_rig")
+                row = layout.row(align=True)
+                row.enabled = self.use_rig
+                row.prop(self, "rig_filepath")
 
-        is_weighted_prim = bl_utils_prim.is_weighted(self.filepath)
-        if not is_weighted_prim:
-            layout.label(text="The selected prim does not support a rig", icon="ERROR")
-        elif len(self.files) - 1:
-            layout.label(text="Rigs are not supported when batch importing")
-        else:
-            row = layout.row(align=True)
-            row.prop(self, "use_rig")
-            row = layout.row(align=True)
-            row.enabled = self.use_rig
-            row.prop(self, "rig_filepath")
-
-            if self.use_rig:
-                f = None
-                try:
-                    f = open(os.fsencode(self.rig_filepath.replace(os.sep, '/')), "rb")
-                except IOError:
-                    layout.label(text="Given filepath not valid", icon="ERROR")
-                finally:
-                    if f:
-                        f.close()
+                if self.use_rig:
+                    f = None
+                    try:
+                        f = open(os.fsencode(self.rig_filepath.replace(os.sep, '/')), "rb")
+                    except IOError:
+                        layout.label(text="Given filepath not valid", icon="ERROR")
+                    finally:
+                        if f:
+                            f.close()
 
         layout.row(align=True)
 
@@ -111,14 +111,13 @@ class ImportPRIM(bpy.types.Operator, ImportHelper):
                 arma_obj = bpy.data.objects.new(armature.name, armature)
                 collection.objects.link(arma_obj)
 
-            meshes = bl_import_prim.load_prim(self, context, collection, prim_path, self.use_rig, self.rig_filepath)
+            objects = bl_import_prim.load_prim(self, context, collection, prim_path, self.use_rig, self.rig_filepath)
 
-            if not meshes:
+            if not objects:
                 BlenderUI.MessageBox("Failed to import \"%s\"" % prim_path, "Importing error", 'ERROR')
                 return {'CANCELLED'}
 
-            for mesh in meshes:
-                obj = bpy.data.objects.new(mesh.name, mesh)
+            for obj in objects:
                 if self.use_rig and arma_obj:
                     obj.modifiers.new(name='Glacier Bonerig', type='ARMATURE')
                     obj.modifiers['Glacier Bonerig'].object = arma_obj

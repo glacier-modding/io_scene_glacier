@@ -59,7 +59,13 @@ class BinaryReader:
             vec[i] = self.readShort()
         return vec
 
-    def readShortQuantizedVec(self, size, scale, bias):
+    def readShortQuantizedVec(self, size):
+        vec = [0] * size
+        for i in range(size):
+            vec[i] = (self.readShort() / 0x7FFF)
+        return vec
+
+    def readShortQuantizedVecScaledBiased(self, size, scale, bias):
         vec = [0] * size
         for i in range(size):
             vec[i] = ((self.readShort() * scale[i]) / 0x7FFF) + bias[i]
@@ -174,7 +180,11 @@ class BinaryReader:
         for val in vec:
             self.writeShort(val)
 
-    def writeShortQuantizedVec(self, vec, scale, bias):
+    def writeShortQuantizedVec(self, vec):
+        for i in range(len(vec)):
+            self.writeShort(int(round(vec[i] * 0x7FFF)))
+
+    def writeShortQuantizedVecScaledBiased(self, vec, scale, bias):
         for i in range(len(vec)):
             self.writeShort(int(round(((vec[i] - bias[i]) * 0x7FFF) / scale[i])))
 
