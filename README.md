@@ -1,3 +1,7 @@
+<a href="https://wiki.glaciermodding.org/blender">
+	<img src="https://img.shields.io/badge/docusaurus-wiki.glaciermodding.org-brightgreen" />
+</a>
+
 # Glacier 2 Blender addon
 *View and create assets from the Glacier 2 game engine.*  
 
