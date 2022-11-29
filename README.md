@@ -12,15 +12,16 @@ The following games are supported by this addon:
 
 The addon supports the following formats:
 
-| Extension 	| Description 						| Can import 					| Can export 					|
-|---------------|-----------------------------------|:-----------------------------:|:-----------------------------:|
-| .prim			| Standard RenderPrimitive			| Yes							| Yes							|
-| .weightedprim	| Weighted RenderPrimitive			| Yes							| No	|
-| .linkedprim	| Linked RenderPrimitive			| Yes							| No	|
-| .borg			| AnimationBoneData 				| Yes							| No							|
-| .mjba			| MorphemeJointBoneAnimationData	| No							| No							|
-| .mrtr			| MorphemeRuntimeRig				| No							| No							|
-| .vtxd			| VertexData						| No							| No							|
+| Extension     | Description                    | Can import | Can export |
+| ------------- | ------------------------------ | :--------: | :--------: |
+| .prim         | Standard RenderPrimitive       |    Yes     |    Yes     |
+| .weightedprim | Weighted RenderPrimitive       |    Yes     |     No     |
+| .linkedprim   | Linked RenderPrimitive         |    Yes     |     No     |
+| .borg         | AnimationBoneData              |    Yes     |     No     |
+| .aloc         | Physics                        |     No     |     No     |
+| .mjba         | MorphemeJointBoneAnimationData |     No     |     No     |
+| .mrtr         | MorphemeRuntimeRig             |     No     |     No     |
+| .vtxd         | VertexData                     |     No     |     No     |
  
 *Support for more formats or titles may be added in the future*
  
