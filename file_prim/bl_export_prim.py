@@ -2,11 +2,12 @@ import os
 import bpy
 import bmesh
 import numpy as np
-
+import mathutils as mu
 
 from . import format
 from .. import io_binary
 from .. import BlenderUI
+
 
 def save_prim(collection, filepath: str):
     """
@@ -42,6 +43,10 @@ def save_prim(collection, filepath: str):
         lod = bitArrToInt(ob.data.prim_properties.lod)
         prim_obj.prim_object.lodmask = lod
 
+        world_matrix = ob.matrix_world
+        prim_obj.pos_bias = list(world_matrix.to_translation()[:]) + [1.0]
+        prim_obj.pos_scale = list(world_matrix.to_scale()[:]) + [0.5]
+
         prim_obj.sub_mesh = save_prim_sub_mesh(ob)
 
         if prim_obj.sub_mesh is None:
@@ -57,7 +62,6 @@ def save_prim(collection, filepath: str):
         prim_obj.prim_object.zbias = ob.data.prim_properties.z_bias
         prim_obj.prim_object.zoffset = ob.data.prim_properties.z_offset
         if ob.data.prim_properties.use_mesh_color:
-            print("Set color to: ", [round(ob.data.prim_properties.mesh_color[0] * 255), round(ob.data.prim_properties.mesh_color[1] * 255), round(ob.data.prim_properties.mesh_color[2] * 255), round(ob.data.prim_properties.mesh_color[3] * 255)])
             prim_obj.sub_mesh.prim_object.color1[0] = round(ob.data.prim_properties.mesh_color[0] * 255)
             prim_obj.sub_mesh.prim_object.color1[1] = round(ob.data.prim_properties.mesh_color[1] * 255)
             prim_obj.sub_mesh.prim_object.color1[2] = round(ob.data.prim_properties.mesh_color[2] * 255)
@@ -121,12 +125,14 @@ def save_prim_sub_mesh(blender_obj):
     dots['tx'] = tangents[:, 0]
     dots['ty'] = tangents[:, 1]
     dots['tz'] = tangents[:, 2]
+    dots['tw'] = tangents[:, 3]
     del tangents
 
     bitangents = get_bitangents(mesh)
     dots['bx'] = bitangents[:, 0]
     dots['by'] = bitangents[:, 1]
     dots['bz'] = bitangents[:, 2]
+    dots['bw'] = bitangents[:, 3]
     del bitangents
 
     for uv_i in range(len(mesh.uv_layers)):
@@ -156,10 +162,11 @@ def save_prim_sub_mesh(blender_obj):
     loop_indices = np.empty(len(mesh.loop_triangles) * 3, dtype=np.uint32)
     mesh.loop_triangles.foreach_get('loops', loop_indices)
 
-    prim_mesh.indices = loop_indices.tolist()
-    prim_mesh.vertexBuffer.vertices = [0] * len(np.unique(loop_indices))
-
     prim_dots = dots[loop_indices]
+    prim_dots, prim_mesh.indices = np.unique(prim_dots, return_inverse=True)
+    print(prim_mesh.indices)
+    prim_mesh.indices = prim_mesh.indices.tolist()
+    prim_mesh.vertexBuffer.vertices = [0] * len(prim_dots)
 
     blender_idxs = prim_dots['vertex_index']
 
@@ -167,7 +174,7 @@ def save_prim_sub_mesh(blender_obj):
     positions[:, 0] = locs[blender_idxs, 0]
     positions[:, 1] = locs[blender_idxs, 1]
     positions[:, 2] = locs[blender_idxs, 2]
-    positions[:, 3] = 1.0
+    positions[:, 3] = locs[blender_idxs, 3]
 
     normals = np.empty((len(prim_dots), 4), dtype=np.float32)
     normals[:, 0] = prim_dots['nx']
@@ -197,7 +204,7 @@ def save_prim_sub_mesh(blender_obj):
     colors[:, 1] = prim_dots['colorG']
     colors[:, 2] = prim_dots['colorB']
     colors[:, 3] = prim_dots['colorA']
-    
+
     for i, vertex in enumerate(prim_mesh.vertexBuffer.vertices):
         vertex = format.Vertex()
         vertex.position = positions[i]
@@ -216,11 +223,19 @@ def get_positions(mesh, matrix):
     # read the vertex locations
     locs = np.empty(len(mesh.vertices) * 3, dtype=np.float32)
     source = mesh.vertices
+
+    matrix = matrix.to_quaternion().normalized().to_matrix().to_4x4()
+
     for vert in source:
         vert.co = matrix @ vert.co
 
     source.foreach_get('co', locs)
     locs = locs.reshape(len(mesh.vertices), 3)
+    locs = np.c_[locs, np.ones(len(mesh.vertices), dtype=int)]
+
+    # normalize the position quats
+    for i in range(len(locs)):
+        locs[i] = mu.Quaternion((locs[i][0], locs[i][1], locs[i][2], locs[i][3])).normalized()[:]
 
     return locs
 
@@ -234,11 +249,8 @@ def get_normals(mesh):
     normals = normals.reshape(len(mesh.loops), 3)
 
     for ns in normals:
-        for axis in range(3):
-            if int(round(ns[axis])) != 0:
-                ns[axis] = round(ns[axis])
-            else:
-                ns[axis] = ns[axis] + (1 / 255)
+        is_zero = ~ns.any()
+        ns[is_zero, 2] = 1
 
     return normals
 
@@ -248,13 +260,7 @@ def get_tangents(mesh):
     tangents = np.empty(len(mesh.loops) * 3, dtype=np.float32)
     mesh.loops.foreach_get('tangent', tangents)
     tangents = tangents.reshape(len(mesh.loops), 3)
-
-    for ts in tangents:
-        for axis in range(3):
-            if int(round(ts[axis])) != 0:
-                ts[axis] = round(ts[axis])
-            else:
-                ts[axis] = ts[axis] + (1 / 255)
+    tangents = np.c_[tangents, np.ones(len(mesh.loops), dtype=int)]
 
     return tangents
 
@@ -264,13 +270,7 @@ def get_bitangents(mesh):
     bitangents = np.empty(len(mesh.loops) * 3, dtype=np.float32)
     mesh.loops.foreach_get('bitangent', bitangents)
     bitangents = bitangents.reshape(len(mesh.loops), 3)
-
-    for bs in bitangents:
-        for axis in range(3):
-            if int(round(bs[axis])) != 0:
-                bs[axis] = round(bs[axis])
-            else:
-                bs[axis] = bs[axis] + (1 / 255)
+    bitangents = np.c_[bitangents, np.ones(len(mesh.loops), dtype=int)]
 
     return bitangents
 

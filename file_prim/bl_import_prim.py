@@ -39,14 +39,18 @@ def load_prim(operator, context, collection, filepath, use_rig, rig_filepath):
         borg = borg_format.BoneRig()
         borg.read(br)
 
-    meshes = []
+    objects = []
     for meshIndex in range(prim.num_objects()):
-        meshes.append(load_prim_mesh(prim, borg, prim_name, meshIndex))
+        mesh = load_prim_mesh(prim, borg, prim_name, meshIndex)
+        obj = bpy.data.objects.new(mesh.name, mesh)
+        obj.location = prim.header.object_table[meshIndex].pos_bias[0:3]
+        obj.scale = prim.header.object_table[meshIndex].pos_scale[0:3]
+        objects.append(obj)
 
         # coli testing
         # load_prim_coli(prim, prim_name, meshIndex)
 
-    return meshes
+    return objects
 
 
 def load_prim_coli(prim, prim_name: str, mesh_index: int):
@@ -191,9 +195,9 @@ def load_prim_mesh(prim, borg, prim_name: str, mesh_index: int):
     mesh.prim_properties.z_bias = prim_mesh_obj.zbias
     mesh.prim_properties.z_offset = prim_mesh_obj.zoffset
     mesh.prim_properties.use_mesh_color = prim_sub_mesh_obj.properties.useColor1()
-    mesh.prim_properties.mesh_color = [prim_sub_mesh_obj.color1[0]/255,
-                                       prim_sub_mesh_obj.color1[1]/255,
-                                       prim_sub_mesh_obj.color1[2]/255,
-                                       prim_sub_mesh_obj.color1[3]/255]
+    mesh.prim_properties.mesh_color = [prim_sub_mesh_obj.color1[0] / 255,
+                                       prim_sub_mesh_obj.color1[1] / 255,
+                                       prim_sub_mesh_obj.color1[2] / 255,
+                                       prim_sub_mesh_obj.color1[3] / 255]
 
     return mesh

@@ -111,14 +111,13 @@ class ImportPRIM(bpy.types.Operator, ImportHelper):
                 arma_obj = bpy.data.objects.new(armature.name, armature)
                 collection.objects.link(arma_obj)
 
-            meshes = bl_import_prim.load_prim(self, context, collection, prim_path, self.use_rig, self.rig_filepath)
+            objects = bl_import_prim.load_prim(self, context, collection, prim_path, self.use_rig, self.rig_filepath)
 
-            if not meshes:
+            if not objects:
                 BlenderUI.MessageBox("Failed to import \"%s\"" % prim_path, "Importing error", 'ERROR')
                 return {'CANCELLED'}
 
-            for mesh in meshes:
-                obj = bpy.data.objects.new(mesh.name, mesh)
+            for obj in objects:
                 if self.use_rig and arma_obj:
                     obj.modifiers.new(name='Glacier Bonerig', type='ARMATURE')
                     obj.modifiers['Glacier Bonerig'].object = arma_obj

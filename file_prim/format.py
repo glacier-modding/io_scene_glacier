@@ -94,6 +94,7 @@ class PrimObjectHeaderPropertyFlags:
 
 class PrimObjectPropertyFlags:
     """Mesh specific properties, used in Mesh and SubMesh. """
+
     def __init__(self, value: int):
         self.bitfield = value
 
@@ -135,6 +136,7 @@ class PrimObjectPropertyFlags:
 
     def setNoPhysics(self):
         self.bitfield |= 0b1000000
+
     def write(self, br):
         br.writeUByte(self.bitfield)
 
@@ -151,6 +153,7 @@ class PrimObjectPropertyFlags:
 
 class BoxColiEntry:
     """Helper class for BoxColi, defines an entry to store BoxColi"""
+
     def __init__(self):
         self.min = [0] * 3
         self.max = [0] * 3
@@ -166,6 +169,7 @@ class BoxColiEntry:
 
 class BoxColi:
     """Used to store and array of BoxColi. Used for bullet collision"""
+
     def __init__(self):
         self.tri_per_chunk = 0x20
         self.box_entries = []
@@ -188,6 +192,7 @@ class BoxColi:
 
 class Vertex:
     """A vertex with all field found inside a RenderPrimitive file"""
+
     def __init__(self):
         self.position = [0] * 4
         self.weight = [[0] * 4 for _ in range(2)]
@@ -201,6 +206,7 @@ class Vertex:
 
 class PrimMesh:
     """A subMesh wrapper class, used to store information about a mesh, as well as the mesh itself (called sub_mesh)"""
+
     def __init__(self):
         self.prim_object = PrimObject(2)
         self.pos_scale = [1.0] * 4  # TODO: Remove this, should be calculated when exporting
@@ -231,7 +237,7 @@ class PrimMesh:
         br.seek(old_offset)  # reset offset to end of header, this is required for WeightedPrimMesh
 
     def write(self, br, flags):
-        self.update()
+        self.center_uv_origin()
         sub_mesh_offset = self.sub_mesh.write(br, self, flags)
 
         header_offset = br.tell()
@@ -250,26 +256,12 @@ class PrimMesh:
 
         return header_offset
 
-    def update(self):
-        bb = self.sub_mesh.calc_bb()
-        bb_min = bb[0]
-        bb_max = bb[1]
-
-        # set bounding box
-        self.prim_object.min = bb_min
-        self.prim_object.max = bb_max
-
-        # set position scale
-        self.pos_scale[0] = (bb_max[0] - bb_min[0]) * 0.5
-        self.pos_scale[1] = (bb_max[1] - bb_min[1]) * 0.5
-        self.pos_scale[2] = (bb_max[2] - bb_min[2]) * 0.5
-        self.pos_scale[3] = 0.5
-
-        # set position bias
-        self.pos_bias[0] = (bb_max[0] + bb_min[0]) * 0.5
-        self.pos_bias[1] = (bb_max[1] + bb_min[1]) * 0.5
-        self.pos_bias[2] = (bb_max[2] + bb_min[2]) * 0.5
-        self.pos_bias[3] = 1
+    def center_uv_origin(self):
+        """
+            Computes the center of the UV map. turn that into the origin.
+        """
+        # The original UV origin is lost when calculating the uvs from prim.
+        # This will not affect the actual UVs themselves. It just makes us recalculate the origin ourselves.
 
         bb_uv = self.sub_mesh.calc_UVbb()
         bb_uv_min = bb_uv[0]
@@ -286,6 +278,7 @@ class PrimMesh:
 
 class PrimMeshWeighted(PrimMesh):
     """A different variant of PrimMesh. In addition to PrimMesh it also stores bone data"""
+
     def __init__(self):
         super().__init__()
         self.prim_mesh = PrimMesh()
@@ -322,7 +315,7 @@ class PrimMeshWeighted(PrimMesh):
 
         header_offset = br.tell()
 
-        self.update()
+        self.center_uv_origin()
         self.prim_object.write(br)
 
         br.writeUInt(sub_mesh_offset)
@@ -345,6 +338,7 @@ class PrimMeshWeighted(PrimMesh):
 
 class VertexBuffer:
     """A helper class used to store and manage the vertices found inside a PrimSubMesh"""
+
     def __init__(self):
         self.vertices = []
 
@@ -359,12 +353,12 @@ class VertexBuffer:
 
         for vertex in self.vertices:
             if mesh.prim_object.properties.isHighResolution():
-                vertex.position[0] = (br.readFloat() * mesh.pos_scale[0]) + mesh.pos_bias[0]
-                vertex.position[1] = (br.readFloat() * mesh.pos_scale[1]) + mesh.pos_bias[1]
-                vertex.position[2] = (br.readFloat() * mesh.pos_scale[2]) + mesh.pos_bias[2]
+                vertex.position[0] = br.readFloat()
+                vertex.position[1] = br.readFloat()
+                vertex.position[2] = br.readFloat()
                 vertex.position[3] = 1
             else:
-                vertex.position = br.readShortQuantizedVec(4, mesh.pos_scale, mesh.pos_bias)
+                vertex.position = br.readShortQuantizedVec(4)
 
         if flags.isWeightedObject():
             for vertex in self.vertices:
@@ -394,8 +388,8 @@ class VertexBuffer:
             vertex.bitangent = br.readUByteQuantizedVec(4)
             vertex.uv = [0] * num_uvchannels
             for uv in range(num_uvchannels):
-                vertex.uv[uv] = br.readShortQuantizedVec(2, mesh.tex_scale_bias[0:2],
-                                                                      mesh.tex_scale_bias[2:4])
+                vertex.uv[uv] = br.readShortQuantizedVecScaledBiased(2, mesh.tex_scale_bias[0:2],
+                                                                     mesh.tex_scale_bias[2:4])
 
         if not mesh.prim_object.properties.useColor1() or flags.isWeightedObject():
             if not sub_mesh_flags.useColor1():
@@ -419,11 +413,11 @@ class VertexBuffer:
         # positions
         for vertex in self.vertices:
             if mesh.prim_object.properties.isHighResolution():
-                br.writeFloat((vertex.position[0] - mesh.pos_bias[0]) / mesh.pos_scale[0])
-                br.writeFloat((vertex.position[1] - mesh.pos_bias[1]) / mesh.pos_scale[1])
-                br.writeFloat((vertex.position[2] - mesh.pos_bias[2]) / mesh.pos_scale[2])
+                br.writeFloat(vertex.position[0])
+                br.writeFloat(vertex.position[1])
+                br.writeFloat(vertex.position[2])
             else:
-                br.writeShortQuantizedVec(vertex.position, mesh.pos_scale, mesh.pos_bias)
+                br.writeShortQuantizedVec(vertex.position)
 
         # joints and weights
         if flags.isWeightedObject():
@@ -449,8 +443,8 @@ class VertexBuffer:
             br.writeUByteQuantizedVec(vertex.tangent)
             br.writeUByteQuantizedVec(vertex.bitangent)
             for uv in range(num_uvchannels):
-                br.writeShortQuantizedVec(vertex.uv[uv], mesh.tex_scale_bias[0:2],
-                                          mesh.tex_scale_bias[2:4])
+                br.writeShortQuantizedVecScaledBiased(vertex.uv[uv], mesh.tex_scale_bias[0:2],
+                                                      mesh.tex_scale_bias[2:4])
 
         # color
         if not mesh.prim_object.properties.useColor1() or flags.isWeightedObject():
@@ -461,6 +455,7 @@ class VertexBuffer:
 
 class PrimSubMesh:
     """Stores the mesh data. as well as the BoxColi and ClothData"""
+
     def __init__(self):
         self.prim_object = PrimObject(0)
         self.num_vertices = 0
@@ -594,6 +589,7 @@ class PrimSubMesh:
 
 class PrimObject:
     """A header class used to store information about PrimMesh and PrimSubMesh"""
+
     def __init__(self, type_preset: int):
         self.prims = Prims(type_preset)
         self.sub_type = PrimObjectSubtype(0)
@@ -709,6 +705,7 @@ class BoneIndices:
 # needs additional research
 class ClothData:
     """Class to store data about cloth"""
+
     def __init__(self):
         self.size = 0
         self.cloth_data = [0] * self.size
@@ -732,6 +729,7 @@ class ClothData:
 
 class PrimHeader:
     """Small header class used by other header classes"""
+
     def __init__(self, type_preset):
         self.draw_destination = 0
         self.pack_type = 0
@@ -753,6 +751,7 @@ class Prims:
     Wrapper class for PrimHeader.
     I'm not quite sure why it exists, but here it is :)
     """
+
     def __init__(self, type_preset: int):
         self.prim_header = PrimHeader(type_preset)
 
@@ -765,6 +764,7 @@ class Prims:
 
 class PrimObjectHeader:
     """Global RenderPrimitive header. used by all objects defined"""
+
     def __init__(self):
         self.prims = Prims(1)
         self.property_flags = PrimObjectHeaderPropertyFlags(0)
@@ -863,6 +863,7 @@ class RenderPrimitve:
     It contains a multitude of meshes and properties.
     The RenderPrimitive format has built-in support for: armatures, bounding boxes, collision and cloth physics.
     """
+
     def __init__(self):
         self.header = PrimObjectHeader()
 
