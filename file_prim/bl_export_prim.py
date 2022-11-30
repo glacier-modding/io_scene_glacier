@@ -43,10 +43,6 @@ def save_prim(collection, filepath: str):
         lod = bitArrToInt(ob.data.prim_properties.lod)
         prim_obj.prim_object.lodmask = lod
 
-        world_matrix = ob.matrix_world
-        prim_obj.pos_bias = list(world_matrix.to_translation()[:]) + [1.0]
-        prim_obj.pos_scale = list(world_matrix.to_scale()[:]) + [0.5]
-
         prim_obj.sub_mesh = save_prim_sub_mesh(ob)
 
         if prim_obj.sub_mesh is None:
@@ -164,7 +160,6 @@ def save_prim_sub_mesh(blender_obj):
 
     prim_dots = dots[loop_indices]
     prim_dots, prim_mesh.indices = np.unique(prim_dots, return_inverse=True)
-    print(prim_mesh.indices)
     prim_mesh.indices = prim_mesh.indices.tolist()
     prim_mesh.vertexBuffer.vertices = [0] * len(prim_dots)
 
@@ -224,18 +219,12 @@ def get_positions(mesh, matrix):
     locs = np.empty(len(mesh.vertices) * 3, dtype=np.float32)
     source = mesh.vertices
 
-    matrix = matrix.to_quaternion().normalized().to_matrix().to_4x4()
-
     for vert in source:
         vert.co = matrix @ vert.co
 
     source.foreach_get('co', locs)
     locs = locs.reshape(len(mesh.vertices), 3)
     locs = np.c_[locs, np.ones(len(mesh.vertices), dtype=int)]
-
-    # normalize the position quats
-    for i in range(len(locs)):
-        locs[i] = mu.Quaternion((locs[i][0], locs[i][1], locs[i][2], locs[i][3])).normalized()[:]
 
     return locs
 

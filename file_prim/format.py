@@ -237,7 +237,8 @@ class PrimMesh:
         br.seek(old_offset)  # reset offset to end of header, this is required for WeightedPrimMesh
 
     def write(self, br, flags):
-        self.center_uv_origin()
+        self.update()
+
         sub_mesh_offset = self.sub_mesh.write(br, self, flags)
 
         header_offset = br.tell()
@@ -256,12 +257,27 @@ class PrimMesh:
 
         return header_offset
 
-    def center_uv_origin(self):
-        """
-            Computes the center of the UV map. turn that into the origin.
-        """
-        # The original UV origin is lost when calculating the uvs from prim.
-        # This will not affect the actual UVs themselves. It just makes us recalculate the origin ourselves.
+    def update(self):
+        bb = self.sub_mesh.calc_bb()
+        bb_min = bb[0]
+        bb_max = bb[1]
+
+        # set bounding box
+        self.prim_object.min = bb_min
+        self.prim_object.max = bb_max
+
+        # set position scale
+        self.pos_scale[0] = (bb_max[0] - bb_min[0]) * 0.5
+        self.pos_scale[1] = (bb_max[1] - bb_min[1]) * 0.5
+        self.pos_scale[2] = (bb_max[2] - bb_min[2]) * 0.5
+        self.pos_scale[3] = 0.5
+
+        # set position bias
+        self.pos_bias[0] = (bb_max[0] + bb_min[0]) * 0.5
+        self.pos_bias[1] = (bb_max[1] + bb_min[1]) * 0.5
+        self.pos_bias[2] = (bb_max[2] + bb_min[2]) * 0.5
+        self.pos_bias[3] = 1
+
 
         bb_uv = self.sub_mesh.calc_UVbb()
         bb_uv_min = bb_uv[0]
@@ -315,7 +331,13 @@ class PrimMeshWeighted(PrimMesh):
 
         header_offset = br.tell()
 
-        self.center_uv_origin()
+        bb = self.sub_mesh.calc_bb()
+
+        # set bounding box
+        self.prim_object.min = bb[0]
+        self.prim_object.max = bb[1]
+
+        self.update()
         self.prim_object.write(br)
 
         br.writeUInt(sub_mesh_offset)
@@ -353,12 +375,12 @@ class VertexBuffer:
 
         for vertex in self.vertices:
             if mesh.prim_object.properties.isHighResolution():
-                vertex.position[0] = br.readFloat()
-                vertex.position[1] = br.readFloat()
-                vertex.position[2] = br.readFloat()
+                vertex.position[0] = (br.readFloat() * mesh.pos_scale[0]) + mesh.pos_bias[0]
+                vertex.position[1] = (br.readFloat() * mesh.pos_scale[1]) + mesh.pos_bias[1]
+                vertex.position[2] = (br.readFloat() * mesh.pos_scale[2]) + mesh.pos_bias[2]
                 vertex.position[3] = 1
             else:
-                vertex.position = br.readShortQuantizedVec(4)
+                vertex.position = br.readShortQuantizedVecScaledBiased(4, mesh.pos_scale, mesh.pos_bias)
 
         if flags.isWeightedObject():
             for vertex in self.vertices:
@@ -413,11 +435,11 @@ class VertexBuffer:
         # positions
         for vertex in self.vertices:
             if mesh.prim_object.properties.isHighResolution():
-                br.writeFloat(vertex.position[0])
-                br.writeFloat(vertex.position[1])
-                br.writeFloat(vertex.position[2])
+                br.writeFloat((vertex.position[0] - mesh.pos_bias[0]) / mesh.pos_scale[0])
+                br.writeFloat((vertex.position[1] - mesh.pos_bias[1]) / mesh.pos_scale[1])
+                br.writeFloat((vertex.position[2] - mesh.pos_bias[2]) / mesh.pos_scale[2])
             else:
-                br.writeShortQuantizedVec(vertex.position)
+                br.writeShortQuantizedVecScaledBiased(vertex.position, mesh.pos_scale, mesh.pos_bias)
 
         # joints and weights
         if flags.isWeightedObject():

@@ -43,8 +43,6 @@ def load_prim(operator, context, collection, filepath, use_rig, rig_filepath):
     for meshIndex in range(prim.num_objects()):
         mesh = load_prim_mesh(prim, borg, prim_name, meshIndex)
         obj = bpy.data.objects.new(mesh.name, mesh)
-        obj.location = prim.header.object_table[meshIndex].pos_bias[0:3]
-        obj.scale = prim.header.object_table[meshIndex].pos_scale[0:3]
         objects.append(obj)
 
         # coli testing
