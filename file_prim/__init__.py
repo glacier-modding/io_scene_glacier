@@ -68,8 +68,8 @@ class ImportPRIM(bpy.types.Operator, ImportHelper):
             return
 
         layout = self.layout
-        layout.label(text="import options:")
-        if self.filepath:
+        if os.path.exists(self.filepath):
+            layout.label(text="import options:")
             is_weighted_prim = bl_utils_prim.is_weighted(self.filepath)
             if not is_weighted_prim:
                 layout.label(text="The selected prim does not support a rig", icon="ERROR")
@@ -178,7 +178,6 @@ class ExportPRIM(bpy.types.Operator, ExportHelper):
 
 
 class PrimCollectionProperties(PropertyGroup):
-
     bone_rig_resource_index: IntProperty(
         name="Bone Rig Resource Index",
         description="",
