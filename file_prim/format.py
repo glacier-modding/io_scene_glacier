@@ -178,7 +178,7 @@ class BoxColi:
         num_chunks = br.readUShort()
         self.tri_per_chunk = br.readUShort()
         self.box_entries = [-1] * num_chunks
-        self.box_entries = [BoxColiEntry() for _ in range(5)]
+        self.box_entries = [BoxColiEntry() for _ in range(num_chunks)]
         for box_entry in self.box_entries:
             box_entry.read(br)
 

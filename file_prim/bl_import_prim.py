@@ -57,19 +57,20 @@ def load_prim_coli(prim, prim_name: str, mesh_index: int):
         x, y, z = boxColi.min
         x1, y1, z1 = boxColi.max
 
+        bb_min = prim.header.object_table[mesh_index].prim_object.min
         bb_max = prim.header.object_table[mesh_index].prim_object.max
 
-        x = (x / 255) * bb_max[0]
-        y = (y / 255) * bb_max[1]
-        z = (z / 255) * bb_max[2]
+        x = (x / 255) * (bb_max[0] - bb_min[0])
+        y = (y / 255) * (bb_max[1] - bb_min[1])
+        z = (z / 255) * (bb_max[2] - bb_min[2])
 
-        x1 = (x1 / 255) * bb_max[0]
-        y1 = (y1 / 255) * bb_max[1]
-        z1 = (z1 / 255) * bb_max[2]
+        x1 = (x1 / 255) * (bb_max[0] - bb_min[0])
+        y1 = (y1 / 255) * (bb_max[1] - bb_min[1])
+        z1 = (z1 / 255) * (bb_max[2] - bb_min[2])
 
-        box_x = (x1 + x) / 2
-        box_y = (y1 + y) / 2
-        box_z = (z1 + z) / 2
+        box_x = (x1 + x) / 2 + bb_min[0]
+        box_y = (y1 + y) / 2 + bb_min[1]
+        box_z = (z1 + z) / 2 + bb_min[2]
 
         scale_x = (x1 - x) / 2
         scale_y = (y1 - y) / 2
