@@ -23,6 +23,7 @@ def save_prim(collection, filepath: str):
     mesh_obs = [o for o in collection.all_objects if o.type == 'MESH']
     for ob in mesh_obs:
         prim_obj = format.PrimMesh()
+        mesh_backup = ob.data.copy()
         triangulate_object(ob)
 
         material_id = ob.data.prim_properties.material_id
@@ -64,6 +65,7 @@ def save_prim(collection, filepath: str):
             prim_obj.sub_mesh.prim_object.color1[3] = round(ob.data.prim_properties.mesh_color[3] * 255)
 
         prim.header.object_table.append(prim_obj)
+        ob.data = mesh_backup
 
     export_file = os.fsencode(filepath)
     if os.path.exists(export_file):
