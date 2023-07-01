@@ -3,6 +3,9 @@ import bpy
 import bmesh
 import numpy as np
 import mathutils as mu
+from functools import cmp_to_key
+import copy
+import sys
 
 from . import format
 from .. import io_binary
@@ -212,6 +215,92 @@ def save_prim_sub_mesh(blender_obj):
             vertex.uv[tex_coord_i] = uvs[tex_coord_i, i]
         vertex.color = (colors[i] * 255).astype("uint8").tolist()
         prim_mesh.vertexBuffer.vertices[i] = vertex
+    
+    # automatic collision bounding box generation start
+    triangles = []
+    for i in range(int(len(prim_mesh.indices) / 3)):
+        #print(i, prim_mesh.indices[i*3], len(prim_mesh.vertexBuffer.vertices))
+        triangles.append([
+            prim_mesh.vertexBuffer.vertices[prim_mesh.indices[i*3]],
+            prim_mesh.vertexBuffer.vertices[prim_mesh.indices[i*3+1]],
+            prim_mesh.vertexBuffer.vertices[prim_mesh.indices[i*3+2]]
+        ])
+    bbox = prim_mesh.calc_bb()
+    bbox_x = bbox[1][0] - bbox[0][0]
+    bbox_y = bbox[1][1] - bbox[0][1]
+    bbox_z = bbox[1][2] - bbox[0][2]
+    #for triangle in triangles:
+        #print(triangle[0].position, triangle[1].position, triangle[2].position)
+    if bbox_x > bbox_y and bbox_x > bbox_z:
+        #print("sorting x")
+        triangles = sorted(triangles, key=cmp_to_key(compare_x_axis))
+    elif bbox_y > bbox_z:
+        #print("sorting y")
+        triangles = sorted(triangles, key=cmp_to_key(compare_y_axis))
+    else:
+        #print("sorting z")
+        triangles = sorted(triangles, key=cmp_to_key(compare_z_axis))
+    #print(triangles)
+    coli_bb_max = [-sys.float_info.max] * 3
+    coli_bb_min = [sys.float_info.max] * 3
+    count = 0
+    count2 = 0
+    for triangle in reversed(triangles):
+        #if count == 0:
+            #print("start of collision box", count2)
+        #print(triangle[0].position, triangle[1].position, triangle[2].position) 
+        for t in range(3):
+            for axis in range(3):
+                if triangle[t].position[axis] > coli_bb_max[axis]:
+                    coli_bb_max[axis] = triangle[t].position[axis]
+                if triangle[t].position[axis] < coli_bb_min[axis]:
+                    coli_bb_min[axis] = triangle[t].position[axis]
+        count += 1
+        if count == 32:
+            entry = format.BoxColiEntry()
+            #print("bbox_min:", bbox[0])
+            #print("bbox_max:", bbox[1])
+            #print(coli_bb_min)
+            #print(coli_bb_max)
+            coli_bb_min[0] = int(((coli_bb_min[0] - bbox[0][0]) * 255) / (bbox_x))
+            coli_bb_min[1] = int(((coli_bb_min[1] - bbox[0][1]) * 255) / (bbox_y))
+            coli_bb_min[2] = int(((coli_bb_min[2] - bbox[0][2]) * 255) / (bbox_z))
+            coli_bb_max[0] = int(((coli_bb_max[0] - bbox[0][0]) * 255) / (bbox_x))
+            coli_bb_max[1] = int(((coli_bb_max[1] - bbox[0][1]) * 255) / (bbox_y))
+            coli_bb_max[2] = int(((coli_bb_max[2] - bbox[0][2]) * 255) / (bbox_z))
+            entry.min = coli_bb_min
+            entry.max = coli_bb_max
+            #print(entry.min)
+            #print(entry.max)
+            prim_mesh.collision.box_entries.append(entry)
+            count = 0
+            count2 += 1
+            coli_bb_max = [-sys.float_info.max] * 3
+            coli_bb_min = [sys.float_info.max] * 3
+    if count % 32 != 0:
+        #print("end of collision box", count2)
+        entry = format.BoxColiEntry()
+        #print("bbox_min:", bbox[0])
+        #print("bbox_max:", bbox[1])
+        #print(coli_bb_min)
+        #print(coli_bb_max)
+        coli_bb_min[0] = int(((coli_bb_min[0] - bbox[0][0]) * 255) / (bbox_x))
+        coli_bb_min[1] = int(((coli_bb_min[1] - bbox[0][1]) * 255) / (bbox_y))
+        coli_bb_min[2] = int(((coli_bb_min[2] - bbox[0][2]) * 255) / (bbox_z))
+        coli_bb_max[0] = int(((coli_bb_max[0] - bbox[0][0]) * 255) / (bbox_x))
+        coli_bb_max[1] = int(((coli_bb_max[1] - bbox[0][1]) * 255) / (bbox_y))
+        coli_bb_max[2] = int(((coli_bb_max[2] - bbox[0][2]) * 255) / (bbox_z))
+        entry.min = coli_bb_min
+        entry.max = coli_bb_max
+        #print(entry.min)
+        #print(entry.max)
+        prim_mesh.collision.box_entries.append(entry)
+        count = 0
+        count2 += 1
+        coli_bb_max = [-sys.float_info.max] * 3
+        coli_bb_min = [sys.float_info.max] * 3
+    #print(prim_mesh.collision.box_entries)
+    # automatic collision bounding box generation end
 
     return prim_mesh
 
@@ -306,3 +395,34 @@ def triangulate_object(obj):
 
     bm.to_mesh(me)
     bm.free()
+
+def compare_x_axis(a, b):
+    print(a)
+    max_a = np.max([a[0].position[0], a[1].position[0], a[2].position[0]])
+    max_b = np.max([b[0].position[0], b[1].position[0], b[2].position[0]])
+    if (max_a > max_b):
+        return 1
+    elif (max_a < max_b):
+        return -1
+    else:
+        return 0
+
+def compare_y_axis(a, b):
+    max_a = np.max([a[0].position[1], a[1].position[1], a[2].position[1]])
+    max_b = np.max([b[0].position[1], b[1].position[1], b[2].position[1]])
+    if (max_a > max_b):
+        return 1
+    elif (max_a < max_b):
+        return -1
+    else:
+        return 0
+
+def compare_z_axis(a, b):
+    max_a = np.max([a[0].position[2], a[1].position[2], a[2].position[2]])
+    max_b = np.max([b[0].position[2], b[1].position[2], b[2].position[2]])
+    if (max_a > max_b):
+        return 1
+    elif (max_a < max_b):
+        return -1
+    else:
+        return 0

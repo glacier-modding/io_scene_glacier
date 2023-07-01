@@ -583,7 +583,7 @@ class PrimSubMesh:
         return obj_table_offset
 
     def calc_bb(self):
-        bb_max = [sys.float_info.min] * 3
+        bb_max = [-sys.float_info.max] * 3
         bb_min = [sys.float_info.max] * 3
         for vert in self.vertexBuffer.vertices:
             for axis in range(3):
@@ -596,7 +596,7 @@ class PrimSubMesh:
 
     def calc_UVbb(self):
 
-        bb_max = [sys.float_info.min] * 3
+        bb_max = [-sys.float_info.max] * 3
         bb_min = [sys.float_info.max] * 3
         layer = 0
         for vert in self.vertexBuffer.vertices:
@@ -792,7 +792,7 @@ class PrimObjectHeader:
         self.property_flags = PrimObjectHeaderPropertyFlags(0)
         self.bone_rig_resource_index = 0xFFFFFFFF
         self.min = [sys.float_info.max] * 3
-        self.max = [sys.float_info.min] * 3
+        self.max = [-sys.float_info.max] * 3
         self.object_table = []
 
     def read(self, br):
