@@ -1,27 +1,18 @@
 import os
 import bpy
-import mathutils
 import numpy as np
-
-from bpy.props import (BoolProperty,
-                       FloatProperty,
-                       StringProperty,
-                       EnumProperty,
-                       )
-
-from bpy_extras.io_utils import (ImportHelper,
-                                 ExportHelper,
-                                 unpack_list,
-                                 unpack_face_list,
-                                 axis_conversion,
-                                 )
 
 from . import format as prim_format
 from ..file_borg import format as borg_format
 from .. import io_binary
 
 
-def load_prim(operator, context, filepath, use_rig, rig_filepath):
+def load_prim(operator, context, collection, filepath, use_rig, rig_filepath):
+    """Imports a mesh from the given path"""
+
+    prim_name = bpy.path.display_name_from_filepath(filepath)
+    print("Started reading: " + str(prim_name) + "\n")
+
     fp = os.fsencode(filepath)
     file = open(fp, "rb")
     br = io_binary.BinaryReader(file)
@@ -29,61 +20,76 @@ def load_prim(operator, context, filepath, use_rig, rig_filepath):
     prim.read(br)
     br.close()
 
+    if prim.header.bone_rig_resource_index == 0xFFFFFFFF:
+        collection.prim_collection_properties.bone_rig_resource_index = -1
+    else:
+        collection.prim_collection_properties.bone_rig_resource_index = prim.header.bone_rig_resource_index
+    collection.prim_collection_properties.has_bones = prim.header.property_flags.hasBones()
+    collection.prim_collection_properties.has_frames = prim.header.property_flags.hasFrames()
+    collection.prim_collection_properties.is_weighted = prim.header.property_flags.isWeightedObject()
+    collection.prim_collection_properties.is_linked = prim.header.property_flags.isLinkedObject()
+
     borg = None
     if use_rig:
+        borg_name = bpy.path.display_name_from_filepath(filepath)
+        print("Started reading: " + str(borg_name) + "\n")
         fp = os.fsencode(rig_filepath)
         file = open(fp, "rb")
         br = io_binary.BinaryReader(file)
         borg = borg_format.BoneRig()
         borg.read(br)
 
-    prim_name = bpy.path.display_name_from_filepath(filepath)
-    print("Start reading: " + str(prim_name) + "\n")
-
-    meshes = []
+    objects = []
     for meshIndex in range(prim.num_objects()):
-        meshes.append(load_prim_mesh(prim, borg, prim_name, meshIndex))
+        mesh = load_prim_mesh(prim, borg, prim_name, meshIndex)
+        obj = bpy.data.objects.new(mesh.name, mesh)
+        objects.append(obj)
 
         # coli testing
         # load_prim_coli(prim, prim_name, meshIndex)
 
-    return meshes
+    return objects
 
 
-def load_prim_coli(prim, prim_name, meshIndex):
-    for boxColi in prim.header.object_table[meshIndex].sub_mesh.collision.box_entries:
+def load_prim_coli(prim, prim_name: str, mesh_index: int):
+    """Testing class for the prim BoxColi """
+    for boxColi in prim.header.object_table[mesh_index].sub_mesh.collision.box_entries:
         x, y, z = boxColi.min
         x1, y1, z1 = boxColi.max
 
-        bbMin = prim.header.object_table[meshIndex].prim_object.min
-        bbMax = prim.header.object_table[meshIndex].prim_object.max
+        bb_min = prim.header.object_table[mesh_index].prim_object.min
+        bb_max = prim.header.object_table[mesh_index].prim_object.max
 
-        x = (x / 255) * bbMax[0]
-        y = (y / 255) * bbMax[1]
-        z = (z / 255) * bbMax[2]
+        x = (x / 255) * (bb_max[0] - bb_min[0])
+        y = (y / 255) * (bb_max[1] - bb_min[1])
+        z = (z / 255) * (bb_max[2] - bb_min[2])
 
-        x1 = (x1 / 255) * bbMax[0]
-        y1 = (y1 / 255) * bbMax[1]
-        z1 = (z1 / 255) * bbMax[2]
+        x1 = (x1 / 255) * (bb_max[0] - bb_min[0])
+        y1 = (y1 / 255) * (bb_max[1] - bb_min[1])
+        z1 = (z1 / 255) * (bb_max[2] - bb_min[2])
 
-        boxX = (x1 + x) / 2
-        boxY = (y1 + y) / 2
-        boxZ = (z1 + z) / 2
+        box_x = (x1 + x) / 2 + bb_min[0]
+        box_y = (y1 + y) / 2 + bb_min[1]
+        box_z = (z1 + z) / 2 + bb_min[2]
 
-        scaleX = (x1 - x) / 2
-        scaleY = (y1 - y) / 2
-        scaleZ = (z1 - z) / 2
+        scale_x = (x1 - x) / 2
+        scale_y = (y1 - y) / 2
+        scale_z = (z1 - z) / 2
 
-        mesh = bpy.ops.mesh.primitive_cube_add(scale=(scaleX, scaleY, scaleZ), calc_uvs=True, align='WORLD',
-                                               location=(boxX, boxY, boxZ))
+        bpy.ops.mesh.primitive_cube_add(scale=(scale_x, scale_y, scale_z), calc_uvs=True, align='WORLD',
+                                        location=(box_x, box_y, box_z))
         ob = bpy.context.object
         me = ob.data
-        ob.name = (str(prim_name) + "_" + str(meshIndex) + "_Coli")
+        ob.name = (str(prim_name) + "_" + str(mesh_index) + "_Coli")
         me.name = 'CUBEMESH'
 
 
-def load_prim_mesh(prim, borg, prim_name, meshIndex):
-    mesh = bpy.data.meshes.new(name=(str(prim_name) + "_" + str(meshIndex)))
+def load_prim_mesh(prim, borg, prim_name: str, mesh_index: int):
+    """
+    Turn the prim data structure into a Blender mesh.
+    Returns the generated Mesh
+    """
+    mesh = bpy.data.meshes.new(name=(str(prim_name) + "_" + str(mesh_index)))
 
     use_rig = False
     if borg is not None:
@@ -99,21 +105,19 @@ def load_prim_mesh(prim, borg, prim_name, meshIndex):
     if prim.header.property_flags.isWeightedObject() and use_rig:
         num_joint_sets = 2
 
-    sub_mesh = prim.header.object_table[meshIndex].sub_mesh
+    sub_mesh = prim.header.object_table[mesh_index].sub_mesh
 
-    vert_joints = [[[0] * 4 for j in range(len(sub_mesh.vertexBuffer.vertices))] for i in range(num_joint_sets)]
-    vert_weights = [[[0] * 4 for j in range(len(sub_mesh.vertexBuffer.vertices))] for i in range(num_joint_sets)]
+    vert_joints = [[[0] * 4 for _ in range(len(sub_mesh.vertexBuffer.vertices))] for _ in range(num_joint_sets)]
+    vert_weights = [[[0] * 4 for _ in range(len(sub_mesh.vertexBuffer.vertices))] for _ in range(num_joint_sets)]
 
     loop_vidxs.extend(sub_mesh.indices)
 
-    i = 0
-    for vert in sub_mesh.vertexBuffer.vertices:
+    for i, vert in enumerate(sub_mesh.vertexBuffer.vertices):
         vert_locs.extend([vert.position[0], vert.position[1], vert.position[2]])
 
         for j in range(num_joint_sets):
             vert_joints[j][i] = (vert.joint[j])
             vert_weights[j][i] = (vert.weight[j])
-        i = i + 1
 
     for index in sub_mesh.indices:
         vert = sub_mesh.vertexBuffer.vertices[index]
@@ -167,13 +171,32 @@ def load_prim_mesh(prim, borg, prim_name, meshIndex):
     mesh.validate()
     mesh.update()
 
-    material_id = prim.header.object_table[meshIndex].prim_object.material_id
-    mesh.prim_properties.material_id = material_id
+    # write the additional properties to the blender structure
+    prim_mesh_obj = prim.header.object_table[mesh_index].prim_object
+    prim_sub_mesh_obj = prim.header.object_table[mesh_index].sub_mesh.prim_object
 
-    lod = prim.header.object_table[meshIndex].prim_object.lodmask
+    lod = prim_mesh_obj.lodmask
     mask = []
     for bit in range(8):
         mask.append(0 != (lod & (1 << bit)))
     mesh.prim_properties.lod = mask
+
+    mesh.prim_properties.material_id = prim_mesh_obj.material_id
+    mesh.prim_properties.prim_type = str(prim_mesh_obj.prims.prim_header.type)
+    mesh.prim_properties.prim_sub_type = str(prim_mesh_obj.sub_type)
+
+    mesh.prim_properties.axis_lock = [prim_mesh_obj.properties.isXaxisLocked(),
+                                      prim_mesh_obj.properties.isYaxisLocked(),
+                                      prim_mesh_obj.properties.isZaxisLocked()]
+    mesh.prim_properties.no_physics = prim_mesh_obj.properties.hasNoPhysicsProp()
+
+    mesh.prim_properties.variant_id = prim_sub_mesh_obj.variant_id
+    mesh.prim_properties.z_bias = prim_mesh_obj.zbias
+    mesh.prim_properties.z_offset = prim_mesh_obj.zoffset
+    mesh.prim_properties.use_mesh_color = prim_sub_mesh_obj.properties.useColor1()
+    mesh.prim_properties.mesh_color = [prim_sub_mesh_obj.color1[0] / 255,
+                                       prim_sub_mesh_obj.color1[1] / 255,
+                                       prim_sub_mesh_obj.color1[2] / 255,
+                                       prim_sub_mesh_obj.color1[3] / 255]
 
     return mesh

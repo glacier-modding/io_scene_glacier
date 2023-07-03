@@ -4,23 +4,16 @@ import mathutils
 import math
 
 from mathutils import Vector, Quaternion, Matrix
-import numpy as np
-
-from bpy.props import (BoolProperty,
-                       FloatProperty,
-                       StringProperty,
-                       EnumProperty,
-                       )
-
-from bpy_extras.io_utils import (ImportHelper,
-                                 ExportHelper,
-                                 unpack_list,
-                                 unpack_face_list,
-                                 axis_conversion,
-                                 )
 
 from . import format
 from .. import io_binary
+
+"""
+Most functions are taken from the glTF blender addon and have been adapted to fit this add-on.
+This code was written in accordance with the Apache 2.0 license used by the glTF add-on. 
+glTF-Blender-IO license: https://github.com/KhronosGroup/glTF-Blender-IO/blob/master/LICENSE.txt 
+"""
+
 
 class Bone:
 
@@ -39,7 +32,6 @@ class Bone:
         self.rotation_before = Quaternion((1, 0, 0, 0))
 
     def trs(self):
-        # (final TRS) = (rotation after) (base TRS) (rotation before)
         t, r, s = self.base_trs
         m = scale_rot_swap_matrix(self.rotation_before)
         return (
@@ -48,7 +40,8 @@ class Bone:
             m @ s,
         )
 
-def nearby_signed_perm_matrix(rot): #found in gltf_blender addon
+
+def nearby_signed_perm_matrix(rot: Quaternion):
     """Returns a signed permutation matrix close to rot.to_matrix().
     (A signed permutation matrix is like a permutation matrix, except
     the non-zero entries can be ±1.)
@@ -78,11 +71,9 @@ def nearby_signed_perm_matrix(rot): #found in gltf_blender addon
 
     return m
 
-def scale_rot_swap_matrix(rot): #found in gltf_blender addon
-    """Returns a matrix m st. Scale[s] Rot[rot] = Rot[rot] Scale[m s].
-    If rot.to_matrix() is a signed permutation matrix, works for any s.
-    Otherwise works only if s is a uniform scaling.
-    """
+
+def scale_rot_swap_matrix(rot: Quaternion):
+
     m = nearby_signed_perm_matrix(rot)  # snap to signed perm matrix
     m.transpose()  # invert permutation
     for i in range(3):
@@ -90,8 +81,9 @@ def scale_rot_swap_matrix(rot): #found in gltf_blender addon
             m[i][j] = abs(m[i][j])  # discard sign
     return m
 
-def pick_bone_length(bones, bone_id):
-    """Heuristic for bone length."""
+
+def pick_bone_length(bones: [], bone_id: int):
+    """Return the bone length by finding the smallest child length"""
     bone = bones[bone_id]
 
     child_locs = [
@@ -104,10 +96,10 @@ def pick_bone_length(bones, bone_id):
 
     return bones[bone.parent].bone_length
 
-def pick_bone_rotation(bones, bone_id, parent_rot):
+
+def pick_bone_rotation(bones: [], bone_id: int, parent_rot: Quaternion):
     bone = bones[bone_id]
 
-    # Try to put our tip at the centroid of our children
     child_locs = [
         bones[child].editbone_trans
         for child in bone.children
@@ -121,13 +113,9 @@ def pick_bone_rotation(bones, bone_id, parent_rot):
 
     return parent_rot
 
-def local_rotation(bones, bone_id, rot):
-    """Appends a local rotation to bone's world transform:
-    (new world transform) = (old world transform) @ (rot)
-    without changing the world transform of bone's children.
 
-    For correctness, rot must be a signed permutation of the axes
-    """
+def local_rotation(bones: [], bone_id: int, rot: Quaternion):
+
     bones[bone_id].rotation_before @= rot
 
     # Append the inverse rotation after children's TRS to cancel it out.
@@ -136,7 +124,8 @@ def local_rotation(bones, bone_id, rot):
         bones[child].rotation_after = \
             rot_inv @ bones[child].rotation_after
 
-def rotate_edit_bone(bones, bone_id, rot):
+
+def rotate_edit_bone(bones: [], bone_id: int, rot: Quaternion):
     """Rotate one edit bone without affecting anything else."""
     bones[bone_id].editbone_rot @= rot
     # Cancel out the rotation so children aren't affected.
@@ -145,26 +134,24 @@ def rotate_edit_bone(bones, bone_id, rot):
         child = bones[child_id]
         child.editbone_trans = rot_inv @ child.editbone_trans
         child.editbone_rot = rot_inv @ child.editbone_rot
-    # Need to rotate the bone's final TRS by the same amount so skinning
-    # isn't affected.
     local_rotation(bones, bone_id, rot)
 
 
-def prettify_bones(bones):
+def prettify_bones(bones: []):
     """
     Prettify bone lengths/directions.
     """
 
-    def visit(bone_id, parent_rot=None):  # Depth-first walk
+    def visit(bone_id: int, parent_rot: Quaternion = None):  # Depth-first walk
         bone = bones[bone_id]
         rot = None
 
         bone.bone_length = pick_bone_length(bones, bone_id)
 
-        #clamp the bonelength if necessary
+        # clamp the bonelength if necessary
         if bone.bone_length < 0.0001:
             bone.bone_length = 0.001
-        
+
         rot = pick_bone_rotation(bones, bone_id, parent_rot)
         if rot is not None:
             rotate_edit_bone(bones, bone_id, rot)
@@ -173,13 +160,14 @@ def prettify_bones(bones):
 
     visit(0)
 
-def calc_bone_matrices(bones):
+
+def calc_bone_matrices(bones: []):
     """
     Calculate the transformations from bone space to arma space in the bind
     pose and in the edit bone pose.
     """
 
-    def visit(bone_id):  # Depth-first walk
+    def visit(bone_id: int):  # Depth-first walk
         bone = bones[bone_id]
 
         parent_bind_mat = Matrix.Identity(4)
@@ -202,6 +190,7 @@ def calc_bone_matrices(bones):
 
     visit(0)
 
+
 def compute_bones(borg):
     bones = {}
     init_bones(borg, bones)
@@ -209,11 +198,13 @@ def compute_bones(borg):
     calc_bone_matrices(bones)
     return bones
 
+
 def get_bone_trs(svq):
     t = Vector([svq.position[0], -svq.position[2], svq.position[1]])
     r = Quaternion([svq.rotation[3], -svq.rotation[0], svq.rotation[2], -svq.rotation[1]])
     s = Vector([1, 1, 1])
     return t, r, s
+
 
 def init_bones(borg, bones):
     for i, bone in enumerate(borg.bone_definitions):
@@ -221,7 +212,7 @@ def init_bones(borg, bones):
         bones[i] = bl_bone
         bl_bone.name = bone.name
         bl_bone.base_trs = get_bone_trs(borg.bind_poses[i])
-        if i == 0:  # if root
+        if i == 0:  # if root we rotate the bone. This will result in a rotation of the entire rig
             rot = mathutils.Euler((0.0, 0.0, 0.0), 'XYZ')
             rot.rotate_axis('X', math.radians(-90.0))
             bl_bone.base_trs[1].rotate(rot)
@@ -241,7 +232,6 @@ def load_borg(operator, context, filepath):
     fp = os.fsencode(filepath)
     file = open(fp, "rb")
     br = io_binary.BinaryReader(file)
-    rig = []
 
     borg_name = bpy.path.display_name_from_filepath(filepath)
 
@@ -264,7 +254,8 @@ def load_borg(operator, context, filepath):
     armature = blender_arma.data
 
     bone_ids = []
-    def visit(id):  # Depth-first walk
+
+    def visit(id):
 
         bone_ids.append(id)
         for child in bones[id].children:
@@ -272,8 +263,7 @@ def load_borg(operator, context, filepath):
 
     visit(0)
 
-    # Switch into edit mode to create all edit bones
-
+    # Switch to edit mode to create all edit bones
     if bpy.context.mode != 'OBJECT':
         bpy.ops.object.mode_set(mode='OBJECT')
     bpy.context.view_layer.objects.active = blender_arma
@@ -303,14 +293,13 @@ def load_borg(operator, context, filepath):
             parent_editbone = armature.edit_bones[parent_bone.bl_bone_name]
             editbone.parent = parent_editbone
 
-    # Switch back to object mode and do pose bones
+    # Switch back to object mode and apply pose bones
     bpy.ops.object.mode_set(mode="OBJECT")
 
     for id in bone_ids:
         bone = bones[id]
         pose_bone = blender_arma.pose.bones[bone.bl_bone_name]
 
-        # BoneTRS = EditBone * PoseBone
         t, r, s = bone.trs()
         et, er = bone.editbone_trans, bone.editbone_rot
         pose_bone.location = er.conjugated() @ (t - et)
