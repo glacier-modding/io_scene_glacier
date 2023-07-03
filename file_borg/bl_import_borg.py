@@ -41,6 +41,40 @@ class Bone:
         )
 
 
+def setup_poslib(borg, bl_arma):
+
+    if bpy.context.mode != 'OBJECT':
+        bpy.ops.object.mode_set(mode='OBJECT')
+    bpy.context.view_layer.objects.active = bl_arma
+    bpy.ops.object.mode_set(mode="POSE")
+
+
+    for pose_index in range(len(borg.pose_entry_index)):
+        offset = borg.pose_entry_index[pose_index]
+        length = borg.pose_bone_count_array[pose_index]
+        pose_bone_indices = borg.pose_bone_indices[offset: offset + length]
+        pose_bones = borg.pose_bones[offset: offset + length]
+            
+        bone_names = [b.name for b in borg.bone_definitions]
+        pose_bone_names = [bone_names[x] for x in pose_bone_indices]
+
+        for bone_index in range(len(pose_bone_indices)):
+            pose_bone = pose_bones[bone_index]
+            bl_pose_bone = bl_arma.pose.bones[pose_bone_names[bone_index].decode("utf-8")]
+
+            t, r, s = get_pose_bone_trs(pose_bone)
+            bl_pose_bone.location = t
+            bl_pose_bone.rotation_quaternion = r
+            bl_pose_bone.scale = s
+            
+            bl_pose_bone.bone.select = True
+        
+        pose_name = borg.pose_names_list[pose_index]
+        bpy.ops.poselib.create_pose_asset(pose_name=pose_name.decode("utf-8"), activate_new_action=False)
+        bpy.ops.pose.select_all(action='DESELECT')
+
+        
+
 def nearby_signed_perm_matrix(rot: Quaternion):
     """Returns a signed permutation matrix close to rot.to_matrix().
     (A signed permutation matrix is like a permutation matrix, except
@@ -198,6 +232,11 @@ def compute_bones(borg):
     calc_bone_matrices(bones)
     return bones
 
+def get_pose_bone_trs(pose_bone):
+    t = Vector([pose_bone.pos[0], -pose_bone.pos[2], pose_bone.pos[1]])
+    r = Quaternion([pose_bone.quat[3], -pose_bone.quat[0], pose_bone.quat[2], -pose_bone.quat[1]])
+    s = Vector([pose_bone.scale[0], pose_bone.scale[1], pose_bone.scale[2]])
+    return t, r, s
 
 def get_bone_trs(svq):
     t = Vector([svq.position[0], -svq.position[2], svq.position[1]])
@@ -211,7 +250,7 @@ def init_bones(borg, bones):
         bl_bone = Bone()
         bones[i] = bl_bone
         bl_bone.name = bone.name
-        bl_bone.base_trs = get_bone_trs(borg.bind_poses[i])
+        bl_bone.base_trs = get_bone_trs(borg.bind_pose[i])
         if i == 0:  # if root we rotate the bone. This will result in a rotation of the entire rig
             rot = mathutils.Euler((0.0, 0.0, 0.0), 'XYZ')
             rot.rotate_axis('X', math.radians(-90.0))
@@ -241,13 +280,13 @@ def load_borg(operator, context, filepath):
 
     bones = compute_bones(borg)
 
-    for constr in borg.bone_constraints.bone_constraints:
-        print("bone_index", borg.bone_definitions[constr.bone_index].name)
-        print("upnode_parent_idx", borg.bone_definitions[constr.up_node_parent_idx].name)
-        for i, target in enumerate(constr.target_parent_idx):
-            print("target_parent_idx ", i, borg.bone_definitions[target].name)
-        print(print(',\n '.join("%s: %s" % item for item in vars(constr).items())))
-        print()
+    # for constr in borg.bone_constraints.bone_constraints:
+    #     print("bone_index", borg.bone_definitions[constr.bone_index].name)
+    #     print("upnode_parent_idx", borg.bone_definitions[constr.up_node_parent_idx].name)
+    #     for i, target in enumerate(constr.target_parent_idx):
+    #         print("target_parent_idx ", i, borg.bone_definitions[target].name)
+    #     print(print(',\n '.join("%s: %s" % item for item in vars(constr).items())))
+    #     print()
 
     blender_arma = bpy.data.objects.new('temp_obj', amt)
     bpy.context.collection.objects.link(blender_arma)
@@ -308,5 +347,8 @@ def load_borg(operator, context, filepath):
         pose_bone.scale = s
 
     amt = blender_arma.data
+
+    setup_poslib(borg, blender_arma)
     bpy.data.objects.remove(blender_arma)
+
     return amt

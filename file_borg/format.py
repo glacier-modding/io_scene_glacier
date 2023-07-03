@@ -262,13 +262,13 @@ class PoseBone:
 class BoneRig:
     def __init__(self):
         self.bone_definitions = []
-        self.bind_poses = []
-        self.inv_global_mats = []
+        self.bind_pose = []
+        self.bind_pose_inv_global_mats = []
         self.pose_bones = []
         self.pose_bone_indices = []
         self.pose_entry_index = []
         self.pose_bone_count_array = []
-        self.names_list = []
+        self.pose_names_list = []
         self.face_bone_indices = []
         self.bone_constraints = []
 
@@ -295,13 +295,13 @@ class BoneRig:
 
         br.seek(bind_pose_offset)
         for bind_pose_idx in range(number_of_bones):
-            self.bind_poses.append(SVQ())
-            self.bind_poses[bind_pose_idx].read(br)
+            self.bind_pose.append(SVQ())
+            self.bind_pose[bind_pose_idx].read(br)
 
         br.seek(bind_pose_inv_global_mats_offset)
         for mat_idx in range(number_of_bones):
-            self.inv_global_mats.append(Matrix43())
-            self.inv_global_mats[mat_idx].read(br)
+            self.bind_pose_inv_global_mats.append(Matrix43())
+            self.bind_pose_inv_global_mats[mat_idx].read(br)
 
         br.seek(bone_constraints_header_offset)
         self.bone_constraints = BoneConstraints()
@@ -334,7 +334,7 @@ class BoneRig:
 
         for name_idx in range(pose_bone_header.pose_count):
             br.seek(pose_bone_header.names_list_offset + names_entry_index_array[name_idx])
-            self.names_list.append(br.readCString())
+            self.pose_names_list.append(br.readCString())
 
         # read face bone indices
         br.seek(pose_bone_header.face_bone_index_array_offset)
@@ -362,13 +362,13 @@ class BoneRig:
         br.align(16)
 
         pose_bone_header.names_list_offset = br.tell()
-        for name in self.names_list:
+        for name in self.pose_names_list:
             br.writeCString(name)
         br.align(16)
 
         pose_bone_header.names_entry_index_array_offset = br.tell()
         name_offset = 0
-        for name in self.names_list:
+        for name in self.pose_names_list:
             br.writeUInt(name_offset)
             name_offset = name_offset + len(name) + 1
         br.align(16)
@@ -396,7 +396,7 @@ class BoneRig:
         br.align(16)
 
         bind_pose_inv_global_mats_offset = br.tell()
-        for mat in self.inv_global_mats:
+        for mat in self.bind_pose_inv_global_mats:
             mat.write(br)
         br.align(16)
 
