@@ -12,7 +12,7 @@ from .. import io_binary
 from .. import BlenderUI
 from ..file_aloc import format as aloc_format
 
-def save_prim(collection, filepath: str, hitbox_slider: int):
+def save_prim(collection, filepath: str, hitbox_slider: int, force_highres_flag: bool = False):
     """
     Export the selected collection to a prim
     Writes to the given path.
@@ -58,6 +58,9 @@ def save_prim(collection, filepath: str, hitbox_slider: int):
                 return {'CANCELLED'}
             # Set subMesh properties
             if len(prim_obj.sub_mesh.vertexBuffer.vertices) > 100000:
+                prim_obj.prim_object.properties.setHighResolution()
+
+            if force_highres_flag:
                 prim_obj.prim_object.properties.setHighResolution()
 
             if ob.data.prim_properties.use_mesh_color:

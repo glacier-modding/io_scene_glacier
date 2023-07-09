@@ -139,6 +139,9 @@ class ExportPRIM(bpy.types.Operator, ExportHelper):
     """Export to a PRIM file"""
     bl_idname = 'export_mesh.prim'
     bl_label = 'Export PRIM Mesh'
+    bl_space_type = 'FILE_BROWSER'
+    bl_region_type = 'TOOL_PROPS'
+    bl_parent_id = "FILE_PT_operator"
     bl_options = {'PRESET'}
     check_extension = True
     filename_ext = '.prim'
@@ -169,17 +172,26 @@ class ExportPRIM(bpy.types.Operator, ExportHelper):
         max=512,
     )
 
+    force_highres_flag: BoolProperty(
+        name="Force high resolution flag",
+        description="Forces the PRIM to be saved with the high resolution flag set",
+        default=False
+    )
+
     def draw(self, context):
         if ".prim" not in self.filepath.lower():
             return
 
         layout = self.layout
-        layout.label(text="export options:")
+        layout.label(text="Export options:")
         row = layout.row(align=True)
-        row.prop(self, "export_collection")        
+        row.prop(self, "export_collection")
+        layout.label(text="Advanced options:")
         layout.label(text="Hitbox density value:")
         row = layout.row(align=True)
         row.prop(self, "hitbox_slider")
+        row = layout.row(align=True)
+        row.prop(self, "force_highres_flag")
 
     def execute(self, context):
         from . import bl_export_prim
