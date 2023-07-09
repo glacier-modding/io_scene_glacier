@@ -57,7 +57,7 @@ def save_prim(collection, filepath: str, hitbox_slider: int):
             if prim_obj.sub_mesh is None:
                 return {'CANCELLED'}
             # Set subMesh properties
-            if len(prim_obj.sub_mesh.vertexBuffer.vertices) > 100:
+            if len(prim_obj.sub_mesh.vertexBuffer.vertices) > 100000:
                 prim_obj.prim_object.properties.setHighResolution()
 
             if ob.data.prim_properties.use_mesh_color:
