@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Glacier 2 Engine Tools",
     "description": "Tools for the Glacier 2 Engine",
-    "version": (0, 1, 0),
+    "version": (0, 2, 0),
     "blender": (3, 0, 0),
     "doc_url": "https://wiki.glaciermodding.org/blender",
     "tracker_url": "https://github.com/glacier-modding/io_scene_glacier/issues",
