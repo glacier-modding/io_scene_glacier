@@ -22,7 +22,7 @@ The addon supports the following formats:
 | .weightedprim | Weighted RenderPrimitive       |    Yes     |     No     |
 | .linkedprim   | Linked RenderPrimitive         |    Yes     |     No     |
 | .borg         | AnimationBoneData              |    Yes     |     No     |
-| .aloc         | Physics                        |     No     |     No     |
+| .aloc         | Physics                        |     No     |     Yes    |
 | .mjba         | MorphemeJointBoneAnimationData |     No     |     No     |
 | .mrtr         | MorphemeRuntimeRig             |     No     |     No     |
 | .vtxd         | VertexData                     |     No     |     No     |
