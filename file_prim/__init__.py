@@ -139,6 +139,7 @@ class ExportPRIM(bpy.types.Operator, ExportHelper):
     """Export to a PRIM file"""
     bl_idname = 'export_mesh.prim'
     bl_label = 'Export PRIM Mesh'
+    bl_options = {'PRESET'}
     check_extension = True
     filename_ext = '.prim'
     filter_glob: StringProperty(default='*.prim', options={'HIDDEN'})
