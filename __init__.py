@@ -3,7 +3,7 @@ bl_info = {
     "description": "Tools for the Glacier 2 Engine",
     "version": (0, 2, 0),
     "blender": (3, 0, 0),
-    "doc_url": "https://wiki.glaciermodding.org/blender",
+    "doc_url": "https://glaciermodding.org/docs/blender/",
     "tracker_url": "https://github.com/glacier-modding/io_scene_glacier/issues",
     "category": "Import-Export",
 }
