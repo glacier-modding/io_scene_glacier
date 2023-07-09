@@ -10,9 +10,9 @@ import sys
 from . import format
 from .. import io_binary
 from .. import BlenderUI
+from ..file_aloc import format as aloc_format
 
-
-def save_prim(collection, filepath: str):
+def save_prim(collection, filepath: str, hitbox_slider: int):
     """
     Export the selected collection to a prim
     Writes to the given path.
@@ -22,53 +22,58 @@ def save_prim(collection, filepath: str):
     prim.header.bone_rig_resource_index = collection.prim_collection_properties.bone_rig_resource_index
 
     prim.header.object_table = []
-
+    
     mesh_obs = [o for o in collection.all_objects if o.type == 'MESH']
     for ob in mesh_obs:
-        prim_obj = format.PrimMesh()
-        mesh_backup = ob.data.copy()
-        triangulate_object(ob)
+        if not ob.name.startswith("BoxCollider") and \
+            not ob.name.startswith("CapsuleCollider") and \
+            not ob.name.startswith("SphereCollider") and \
+            not ob.name.startswith("ConvexMeshCollider") and \
+            not ob.name.startswith("TriangleMeshCollider"):
+            prim_obj = format.PrimMesh()
+            mesh_backup = ob.data.copy()
+            triangulate_object(ob)
 
-        material_id = ob.data.prim_properties.material_id
-        prim_obj.prim_object.material_id = material_id
+            material_id = ob.data.prim_properties.material_id
+            prim_obj.prim_object.material_id = material_id
 
-        if ob.data.prim_properties.axis_lock[0]:
-            prim_obj.prim_object.properties.setXaxisLocked()
+            if ob.data.prim_properties.axis_lock[0]:
+                prim_obj.prim_object.properties.setXaxisLocked()
 
-        if ob.data.prim_properties.axis_lock[1]:
-            prim_obj.prim_object.properties.setYaxisLocked()
+            if ob.data.prim_properties.axis_lock[1]:
+                prim_obj.prim_object.properties.setYaxisLocked()
 
-        if ob.data.prim_properties.axis_lock[2]:
-            prim_obj.prim_object.properties.setZaxisLocked()
+            if ob.data.prim_properties.axis_lock[2]:
+                prim_obj.prim_object.properties.setZaxisLocked()
 
-        if ob.data.prim_properties.no_physics:
-            prim_obj.prim_object.properties.setNoPhysics()
+            if ob.data.prim_properties.no_physics:
+                prim_obj.prim_object.properties.setNoPhysics()
 
-        lod = bitArrToInt(ob.data.prim_properties.lod)
-        prim_obj.prim_object.lodmask = lod
+            lod = bitArrToInt(ob.data.prim_properties.lod)
+            prim_obj.prim_object.lodmask = lod
 
-        prim_obj.sub_mesh = save_prim_sub_mesh(ob)
+            prim_obj.sub_mesh = save_prim_sub_mesh(ob, hitbox_slider[0])
 
-        if prim_obj.sub_mesh is None:
-            return {'CANCELLED'}
-        # Set subMesh properties
-        if len(prim_obj.sub_mesh.vertexBuffer.vertices) > 100000:
-            prim_obj.prim_object.properties.setHighResolution()
+            if prim_obj.sub_mesh is None:
+                return {'CANCELLED'}
+            # Set subMesh properties
+            if len(prim_obj.sub_mesh.vertexBuffer.vertices) > 100:
+                prim_obj.prim_object.properties.setHighResolution()
 
-        if ob.data.prim_properties.use_mesh_color:
-            prim_obj.sub_mesh.prim_object.properties.setColor1()
+            if ob.data.prim_properties.use_mesh_color:
+                prim_obj.sub_mesh.prim_object.properties.setColor1()
 
-        prim_obj.sub_mesh.prim_object.variant_id = ob.data.prim_properties.variant_id
-        prim_obj.prim_object.zbias = ob.data.prim_properties.z_bias
-        prim_obj.prim_object.zoffset = ob.data.prim_properties.z_offset
-        if ob.data.prim_properties.use_mesh_color:
-            prim_obj.sub_mesh.prim_object.color1[0] = round(ob.data.prim_properties.mesh_color[0] * 255)
-            prim_obj.sub_mesh.prim_object.color1[1] = round(ob.data.prim_properties.mesh_color[1] * 255)
-            prim_obj.sub_mesh.prim_object.color1[2] = round(ob.data.prim_properties.mesh_color[2] * 255)
-            prim_obj.sub_mesh.prim_object.color1[3] = round(ob.data.prim_properties.mesh_color[3] * 255)
+            prim_obj.sub_mesh.prim_object.variant_id = ob.data.prim_properties.variant_id
+            prim_obj.prim_object.zbias = ob.data.prim_properties.z_bias
+            prim_obj.prim_object.zoffset = ob.data.prim_properties.z_offset
+            if ob.data.prim_properties.use_mesh_color:
+                prim_obj.sub_mesh.prim_object.color1[0] = round(ob.data.prim_properties.mesh_color[0] * 255)
+                prim_obj.sub_mesh.prim_object.color1[1] = round(ob.data.prim_properties.mesh_color[1] * 255)
+                prim_obj.sub_mesh.prim_object.color1[2] = round(ob.data.prim_properties.mesh_color[2] * 255)
+                prim_obj.sub_mesh.prim_object.color1[3] = round(ob.data.prim_properties.mesh_color[3] * 255)
 
-        prim.header.object_table.append(prim_obj)
-        ob.data = mesh_backup
+            prim.header.object_table.append(prim_obj)
+            ob.data = mesh_backup
 
     export_file = os.fsencode(filepath)
     if os.path.exists(export_file):
@@ -76,20 +81,67 @@ def save_prim(collection, filepath: str):
     bre = io_binary.BinaryReader(open(export_file, 'wb'))
     prim.write(bre)
     bre.close()
-
+    
+    # Only export to ALOC if data and collision types are both not set to NONE
+    physics_data_type = int(collection.prim_collection_properties.physics_data_type)
+    physics_collision_type = int(collection.prim_collection_properties.physics_collision_type)
+    if physics_data_type > 0 and physics_collision_type > 0:
+        #print(physics_data_type, physics_collision_type)
+        aloc = aloc_format.Physics()
+        collision_settings = aloc_format.PhysicsCollisionSettings()
+        collision_settings.data_type = physics_data_type
+        collision_settings.collider_type = physics_collision_type
+        aloc.set_collision_settings(collision_settings)
+        for ob in mesh_obs:
+            if ob.name.startswith("ConvexMeshCollider"):
+                vertices, indices = get_vertices_and_indices(ob)
+                aloc.add_convex_mesh(vertices, indices, int(ob.data.prim_physics_properties.collision_layer_type))
+                #print("convex mesh!")
+                #print(vertices)
+                #print(indices)
+                del vertices
+                del indices
+            if ob.name.startswith("TriangleMeshCollider"):
+                vertices, indices = get_vertices_and_indices(ob)
+                aloc.add_triangle_mesh(vertices, indices, int(ob.data.prim_physics_properties.collision_layer_type))
+                #print("triangular mesh!")
+                #print(vertices)
+                #print(indices)
+                del vertices
+                del indices
+            if ob.name.startswith("BoxCollider"):
+                #print("box", ob.dimensions, ob.data.prim_physics_properties.collision_layer_type, ob.matrix_world.to_translation(), ob.matrix_world.to_quaternion())
+                aloc.add_primitive_box(list(ob.dimensions / 2), int(ob.data.prim_physics_properties.collision_layer_type), list(ob.matrix_world.to_translation())[:3], list(ob.matrix_world.to_quaternion()))
+            elif ob.name.startswith("CapsuleCollider"):
+                radius = (ob.dimensions[0] + ob.dimensions[1]) / 4
+                length = ob.dimensions[2]
+                #print("cap", radius, length, ob.matrix_world.to_translation(), ob.matrix_world.to_quaternion())
+                aloc.add_primitive_capsule(radius, length, int(ob.data.prim_physics_properties.collision_layer_type), list(ob.matrix_world.to_translation())[:3], list(ob.matrix_world.to_quaternion()))
+            elif ob.name.startswith("SphereCollider"):
+                radius = (ob.dimensions[0] + ob.dimensions[1]) / 4
+                #print("sph", radius, int(ob.data.prim_physics_properties.collision_layer_type), ob.matrix_world.to_translation(), ob.matrix_world.to_quaternion())
+                aloc.add_primitive_sphere(radius, int(ob.data.prim_physics_properties.collision_layer_type), list(ob.matrix_world.to_translation())[:3], list(ob.matrix_world.to_quaternion()))
+        aloc.write(export_file + b".aloc")
+        
     return {'FINISHED'}
 
 
-def save_prim_sub_mesh(blender_obj):
+def save_prim_sub_mesh(blender_obj, max_tris_per_chunk):
     """
     Export a blender mesh to a PrimSubMesh
     Returns a PrimSubMesh
     """
-    mesh = blender_obj.to_mesh()
+    if len(blender_obj.modifiers) == 0:
+        mesh = blender_obj.to_mesh()
+    else:
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+        mesh_owner = blender_obj.evaluated_get(depsgraph)
+        mesh = mesh_owner.to_mesh(preserve_all_data_layers=True, depsgraph=depsgraph)
     prim_mesh = format.PrimSubMesh()
 
     if blender_obj.data.uv_layers:
-        mesh.calc_tangents(uvmap="UVMap")
+        uvmap = blender_obj.data.uv_layers.active.name
+        mesh.calc_tangents(uvmap=uvmap)
     else:
         BlenderUI.MessageBox("\"%s\" is missing a UV map" % mesh.name, "Exporting error", 'ERROR')
         return None
@@ -216,10 +268,13 @@ def save_prim_sub_mesh(blender_obj):
         vertex.color = (colors[i] * 255).astype("uint8").tolist()
         prim_mesh.vertexBuffer.vertices[i] = vertex
     
+    prim_mesh.collision.tri_per_chunk = max_tris_per_chunk
+    save_prim_hitboxes(mesh, prim_mesh)
+
     # automatic collision bounding box generation start
+    '''
     triangles = []
     for i in range(int(len(prim_mesh.indices) / 3)):
-        #print(i, prim_mesh.indices[i*3], len(prim_mesh.vertexBuffer.vertices))
         triangles.append([
             prim_mesh.vertexBuffer.vertices[prim_mesh.indices[i*3]],
             prim_mesh.vertexBuffer.vertices[prim_mesh.indices[i*3+1]],
@@ -229,26 +284,17 @@ def save_prim_sub_mesh(blender_obj):
     bbox_x = bbox[1][0] - bbox[0][0]
     bbox_y = bbox[1][1] - bbox[0][1]
     bbox_z = bbox[1][2] - bbox[0][2]
-    #for triangle in triangles:
-        #print(triangle[0].position, triangle[1].position, triangle[2].position)
     if bbox_x > bbox_y and bbox_x > bbox_z:
-        #print("sorting x")
         triangles = sorted(triangles, key=cmp_to_key(compare_x_axis))
     elif bbox_y > bbox_z:
-        #print("sorting y")
         triangles = sorted(triangles, key=cmp_to_key(compare_y_axis))
     else:
-        #print("sorting z")
         triangles = sorted(triangles, key=cmp_to_key(compare_z_axis))
-    #print(triangles)
     coli_bb_max = [-sys.float_info.max] * 3
     coli_bb_min = [sys.float_info.max] * 3
     count = 0
     count2 = 0
     for triangle in reversed(triangles):
-        #if count == 0:
-            #print("start of collision box", count2)
-        #print(triangle[0].position, triangle[1].position, triangle[2].position) 
         for t in range(3):
             for axis in range(3):
                 if triangle[t].position[axis] > coli_bb_max[axis]:
@@ -256,12 +302,8 @@ def save_prim_sub_mesh(blender_obj):
                 if triangle[t].position[axis] < coli_bb_min[axis]:
                     coli_bb_min[axis] = triangle[t].position[axis]
         count += 1
-        if count == 32:
+        if count == max_tris_per_chunk:
             entry = format.BoxColiEntry()
-            #print("bbox_min:", bbox[0])
-            #print("bbox_max:", bbox[1])
-            #print(coli_bb_min)
-            #print(coli_bb_max)
             coli_bb_min[0] = int(((coli_bb_min[0] - bbox[0][0]) * 255) / (bbox_x))
             coli_bb_min[1] = int(((coli_bb_min[1] - bbox[0][1]) * 255) / (bbox_y))
             coli_bb_min[2] = int(((coli_bb_min[2] - bbox[0][2]) * 255) / (bbox_z))
@@ -270,20 +312,13 @@ def save_prim_sub_mesh(blender_obj):
             coli_bb_max[2] = int(((coli_bb_max[2] - bbox[0][2]) * 255) / (bbox_z))
             entry.min = coli_bb_min
             entry.max = coli_bb_max
-            #print(entry.min)
-            #print(entry.max)
             prim_mesh.collision.box_entries.append(entry)
             count = 0
             count2 += 1
             coli_bb_max = [-sys.float_info.max] * 3
             coli_bb_min = [sys.float_info.max] * 3
-    if count % 32 != 0:
-        #print("end of collision box", count2)
+    if count % max_tris_per_chunk != 0:
         entry = format.BoxColiEntry()
-        #print("bbox_min:", bbox[0])
-        #print("bbox_max:", bbox[1])
-        #print(coli_bb_min)
-        #print(coli_bb_max)
         coli_bb_min[0] = int(((coli_bb_min[0] - bbox[0][0]) * 255) / (bbox_x))
         coli_bb_min[1] = int(((coli_bb_min[1] - bbox[0][1]) * 255) / (bbox_y))
         coli_bb_min[2] = int(((coli_bb_min[2] - bbox[0][2]) * 255) / (bbox_z))
@@ -292,14 +327,12 @@ def save_prim_sub_mesh(blender_obj):
         coli_bb_max[2] = int(((coli_bb_max[2] - bbox[0][2]) * 255) / (bbox_z))
         entry.min = coli_bb_min
         entry.max = coli_bb_max
-        #print(entry.min)
-        #print(entry.max)
         prim_mesh.collision.box_entries.append(entry)
         count = 0
         count2 += 1
         coli_bb_max = [-sys.float_info.max] * 3
         coli_bb_min = [sys.float_info.max] * 3
-    #print(prim_mesh.collision.box_entries)
+    '''
     # automatic collision bounding box generation end
 
     return prim_mesh
@@ -396,8 +429,46 @@ def triangulate_object(obj):
     bm.to_mesh(me)
     bm.free()
 
+def save_prim_hitboxes(bl_mesh, prim_sub_mesh):
+    bb_max = [-sys.float_info.max] * 3
+    bb_min = [sys.float_info.max] * 3
+    for vert in bl_mesh.vertices:
+        for axis in range(3):
+            if bb_max[axis] < vert.co[axis]:
+                bb_max[axis] = vert.co[axis]
+            if bb_min[axis] > vert.co[axis]:
+                bb_min[axis] = vert.co[axis]
+    triangles = np.array(bl_mesh.loop_triangles)
+    num_chunks = len(triangles) / prim_sub_mesh.collision.tri_per_chunk
+    if len(triangles) % prim_sub_mesh.collision.tri_per_chunk:
+        num_chunks += 1
+    chunks = np.array_split(triangles, num_chunks)
+    for chunk in chunks:
+        h_max = [-sys.float_info.max] * 3
+        h_min = [sys.float_info.max] * 3
+        for triangle in chunk:
+            for vert in triangle.vertices:
+                vert_pos = bl_mesh.vertices[vert].co
+                for axis in range(3):
+                    if h_max[axis] < vert_pos[axis]:
+                        h_max[axis] = vert_pos[axis]
+                    if h_min[axis] > vert_pos[axis]:
+                        h_min[axis] = vert_pos[axis]
+        bb_x = (bb_max[0] - bb_min[0])
+        bb_y = (bb_max[1] - bb_min[1])
+        bb_z = (bb_max[2] - bb_min[2])
+        h_min[0] = 0 if bb_x == 0 else int(round(((h_min[0] - bb_min[0]) / bb_x) * 255))
+        h_min[1] = 0 if bb_y == 0 else int(round(((h_min[1] - bb_min[1]) / bb_y) * 255))
+        h_min[2] = 0 if bb_z == 0 else int(round(((h_min[2] - bb_min[2]) / bb_z) * 255))
+        h_max[0] = 0 if bb_x == 0 else int(round(((h_max[0] - bb_min[0]) / bb_x) * 255))
+        h_max[1] = 0 if bb_y == 0 else int(round(((h_max[1] - bb_min[1]) / bb_y) * 255))
+        h_max[2] = 0 if bb_z == 0 else int(round(((h_max[2] - bb_min[2]) / bb_z) * 255))
+        entry = format.BoxColiEntry()
+        entry.min = h_min
+        entry.max = h_max
+        prim_sub_mesh.collision.box_entries.append(entry)
+
 def compare_x_axis(a, b):
-    print(a)
     max_a = np.max([a[0].position[0], a[1].position[0], a[2].position[0]])
     max_b = np.max([b[0].position[0], b[1].position[0], b[2].position[0]])
     if (max_a > max_b):
@@ -426,3 +497,41 @@ def compare_z_axis(a, b):
         return -1
     else:
         return 0
+
+def get_vertices_and_indices(blender_obj):
+    if len(blender_obj.modifiers) == 0:
+        mesh = blender_obj.to_mesh()
+    else:
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+        mesh_owner = blender_obj.evaluated_get(depsgraph)
+        mesh = mesh_owner.to_mesh(preserve_all_data_layers=True, depsgraph=depsgraph)
+
+    locs = get_positions(mesh, blender_obj.matrix_world.copy())
+
+    dot_fields = [('vertex_index', np.uint32)]
+
+    dots = np.empty(len(mesh.loops), dtype=np.dtype(dot_fields))
+
+    vidxs = np.empty(len(mesh.loops))
+    mesh.loops.foreach_get('vertex_index', vidxs)
+    dots['vertex_index'] = vidxs
+    del vidxs
+
+    # Calculate triangles and sort them into primitives.
+    mesh.calc_loop_triangles()
+    loop_indices = np.empty(len(mesh.loop_triangles) * 3, dtype=np.uint32)
+    mesh.loop_triangles.foreach_get('loops', loop_indices)
+
+    prim_dots = dots[loop_indices]
+    prim_dots, indices = np.unique(prim_dots, return_inverse=True)
+    indices = indices.tolist()
+
+    blender_idxs = prim_dots['vertex_index']
+    vertices = np.empty((len(prim_dots), 3), dtype=np.float32)
+    vertices[:, 0] = locs[blender_idxs, 0]
+    vertices[:, 1] = locs[blender_idxs, 1]
+    vertices[:, 2] = locs[blender_idxs, 2]
+    vertices = vertices.tolist()
+    vertices = [i for v in vertices for i in v]
+    
+    return vertices, indices

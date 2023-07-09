@@ -3,6 +3,8 @@ import os
 
 from . import bl_utils_prim
 from .. import BlenderUI
+from ..file_aloc import format as aloc_format
+import mathutils
 
 from bpy_extras.io_utils import (
     ImportHelper,
@@ -157,6 +159,15 @@ class ExportPRIM(bpy.types.Operator, ExportHelper):
         default=None,
     )
 
+    hitbox_slider: IntVectorProperty(
+        name='',
+        description='Configures the hitbox density of the output PRIM.\nLower values equal higher density and vice versa',
+        default=(32,),
+        size=1,
+        min=1,
+        max=512,
+    )
+
     def draw(self, context):
         if ".prim" not in self.filepath.lower():
             return
@@ -164,7 +175,10 @@ class ExportPRIM(bpy.types.Operator, ExportHelper):
         layout = self.layout
         layout.label(text="export options:")
         row = layout.row(align=True)
-        row.prop(self, "export_collection")
+        row.prop(self, "export_collection")        
+        layout.label(text="Hitbox density value:")
+        row = layout.row(align=True)
+        row.prop(self, "hitbox_slider")
 
     def execute(self, context):
         from . import bl_export_prim
@@ -206,6 +220,21 @@ class PrimCollectionProperties(PropertyGroup):
         description='The prim is weighted',
     )
 
+    physics_data_type_items = [(str(layer.value), layer.name, '') for layer in aloc_format.PhysicsDataType]
+
+    physics_collision_type_items = [(str(layer.value), layer.name, '') for layer in aloc_format.PhysicsCollisionType]
+
+    physics_data_type: EnumProperty(
+        name='Physics Data Type',
+        description='Physics Data Types',
+        items=physics_data_type_items
+    )
+
+    physics_collision_type: EnumProperty(
+        name='Physics Collision Type',
+        description='Physics Collision Types',
+        items=physics_collision_type_items
+    )
 
 class GLACIER_PT_PrimCollectionPropertiesPanel(bpy.types.Panel):
     bl_idname = 'GLACIER_PT_PrimCollectionPropertiesPanel'
@@ -236,6 +265,14 @@ class GLACIER_PT_PrimCollectionPropertiesPanel(bpy.types.Panel):
         row.prop(coll.prim_collection_properties, "is_linked")
         row.prop(coll.prim_collection_properties, "is_weighted")
         row.enabled = False
+        
+        layout.label(text="Physics Data Type:")
+        row = layout.row(align=True)
+        row.prop(coll.prim_collection_properties, "physics_data_type", text="")
+        
+        layout.label(text="Physics Collision Type:")
+        row = layout.row(align=True)
+        row.prop(coll.prim_collection_properties, "physics_collision_type", text="")
 
 
 class PrimProperties(PropertyGroup):
@@ -410,12 +447,142 @@ class GLACIER_PT_PrimPropertiesPanel(bpy.types.Panel):
         # A mesh picker to select the collision mesh
         # A button to generate a new collision mesh
 
+class PrimPhysicsProperties(PropertyGroup):
+    """"Stored exposed variables relevant to the RenderPrimitive Physics Properties"""
+
+    collision_layer_items = [(str(layer.value), layer.name, '') for layer in aloc_format.PhysicsCollisionLayerType]
+
+    collision_layer_type: EnumProperty(
+        name='Collision Layer Type',
+        description='Collision Layer Types',
+        items=collision_layer_items
+    )
+
+class PrimPhysicsGenerateBoxCollider(Operator):
+    bl_label = "Add Box Collider"
+    bl_idname = "add_collider.box"
+
+    def execute(self, context):
+        current_obj = bpy.context.selected_objects[0]
+        parent = current_obj
+        bpy.ops.mesh.primitive_cube_add(size=1)
+        cube = bpy.context.selected_objects[0]
+        cube.name = "BoxCollider"
+        cube.parent = parent
+        cube.display_type = 'WIRE'
+        return {'FINISHED'}
+    
+class PrimPhysicsGenerateCapsuleCollider(Operator):
+    bl_label = "Add Capsule Collider"
+    bl_idname = "add_collider.capsule"
+
+    def execute(self, context):
+        current_obj = bpy.context.selected_objects[0]
+        parent = current_obj
+        bpy.ops.mesh.primitive_cylinder_add(radius=0.5, depth=1)
+        cylinder = bpy.context.selected_objects[0]
+        cylinder.name = "CapsuleCollider"
+        cylinder.parent = parent
+        cylinder.display_type = 'WIRE'
+        return {'FINISHED'}
+    
+class PrimPhysicsGenerateSphereCollider(Operator):
+    bl_label = "Add Sphere Collider"
+    bl_idname = "add_collider.sphere"
+
+    def execute(self, context):
+        current_obj = bpy.context.selected_objects[0]
+        parent = current_obj
+        bpy.ops.mesh.primitive_uv_sphere_add(radius=0.5)
+        sphere = bpy.context.selected_objects[0]
+        sphere.name = "SphereCollider"
+        sphere.parent = parent
+        sphere.display_type = 'WIRE'
+        return {'FINISHED'}
+    
+class PrimPhysicsGenerateConvexMeshCollider(Operator):
+    bl_label = "Add Convex Mesh Collider"
+    bl_idname = "add_collider.convex_mesh"
+
+    def execute(self, context):
+        current_obj = bpy.context.selected_objects[0]
+        parent = current_obj
+        convex_mesh_obj = current_obj.copy()
+        convex_mesh_obj.data = current_obj.data.copy()
+        context.collection.objects.link(convex_mesh_obj)
+        convex_mesh_obj.name = "ConvexMeshCollider"
+        convex_mesh_obj.matrix_local = mathutils.Matrix()
+        convex_mesh_obj.parent = parent
+        convex_mesh_obj.display_type = 'WIRE'
+        return {'FINISHED'}
+    
+class PrimPhysicsGenerateTriangleMeshCollider(Operator):
+    bl_label = "Add Triangle Mesh Collider"
+    bl_idname = "add_collider.triangle_mesh"
+
+    def execute(self, context):
+        current_obj = bpy.context.selected_objects[0]
+        parent = current_obj
+        triangle_mesh_obj = current_obj.copy()
+        triangle_mesh_obj.data = current_obj.data.copy()
+        context.collection.objects.link(triangle_mesh_obj)
+        triangle_mesh_obj.name = "TriangleMeshCollider"
+        triangle_mesh_obj.matrix_local = mathutils.Matrix()
+        triangle_mesh_obj.parent = parent
+        triangle_mesh_obj.display_type = 'WIRE'
+        return {'FINISHED'}
+
+class GLACIER_PT_PhysicsPropertiesPanel(bpy.types.Panel):
+    """"Adds a panel to the object window to show the Physics_Properties"""
+
+    bl_idname = 'GLACIER_PT_PhysicsPropertiesPanel'
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = 'physics'
+    bl_category = 'Glacier'
+    bl_label = 'Physics Properties'
+
+    @classmethod
+    def poll(self, context):
+        return context.object is not None
+
+    def draw(self, context):
+        if len(context.selected_objects) == 1:
+            obj = context.object
+            if obj.type != 'MESH':
+                return
+
+            mesh = obj.data
+
+            layout = self.layout
+            
+            if not obj.name.startswith("BoxCollider") and \
+                not obj.name.startswith("CapsuleCollider") and \
+                not obj.name.startswith("SphereCollider") and \
+                not obj.name.startswith("ConvexMeshCollider") and \
+                not obj.name.startswith("TriangleMeshCollider"):
+                layout.operator("add_collider.box")
+                layout.operator("add_collider.capsule")
+                layout.operator("add_collider.sphere")
+                layout.operator("add_collider.convex_mesh")
+                layout.operator("add_collider.triangle_mesh")
+
+            else:
+                row = layout.row()
+                row.prop(mesh.prim_physics_properties, "collision_layer_type")
 
 classes = [
     PrimProperties,
     PrimCollectionProperties,
     GLACIER_PT_PrimPropertiesPanel,
     GLACIER_PT_PrimCollectionPropertiesPanel,
+    PrimPhysicsProperties,
+    PrimPhysicsGenerateBoxCollider,
+    PrimPhysicsGenerateCapsuleCollider,
+    PrimPhysicsGenerateSphereCollider,
+    PrimPhysicsGenerateConvexMeshCollider,
+    PrimPhysicsGenerateTriangleMeshCollider,
+    GLACIER_PT_PhysicsPropertiesPanel,
     ImportPRIM,
     ExportPRIM
 ]
@@ -427,7 +594,8 @@ def register():
     bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
     bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
     bpy.types.Mesh.prim_properties = PointerProperty(type=PrimProperties)
-    bpy.types.Collection.prim_collection_properties = PointerProperty(type=PrimCollectionProperties)
+    bpy.types.Collection.prim_collection_properties = PointerProperty(type=PrimCollectionProperties)    
+    bpy.types.Mesh.prim_physics_properties = PointerProperty(type=PrimPhysicsProperties)
 
 
 def unregister():
@@ -437,6 +605,7 @@ def unregister():
     bpy.types.TOPBAR_MT_file_export.remove(menu_func_export)
     del bpy.types.Mesh.prim_properties
     del bpy.types.Collection.prim_collection_properties
+    del bpy.types.Mesh.prim_physics_properties
 
 
 def menu_func_import(self, context):
