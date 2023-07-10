@@ -186,10 +186,7 @@ class BinaryReader:
 
     def writeShortQuantizedVecScaledBiased(self, vec, scale, bias):
         for i in range(len(vec)):
-            if scale[i] == 0:
-                self.writeShort(0)
-            else:
-                self.writeShort(int(round(((vec[i] - bias[i]) * 0x7FFF) / scale[i])))
+            self.writeShort(int(round(((vec[i] - bias[i]) * 0x7FFF) / scale[i])))
 
     def writeUByteQuantizedVec(self, vec):
         for val in vec:
