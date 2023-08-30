@@ -1,5 +1,5 @@
-<a href="https://wiki.glaciermodding.org/blender">
-	<img src="https://img.shields.io/badge/docusaurus-wiki.glaciermodding.org-brightgreen" />
+<a href="https://glaciermodding.org/docs/blender/">
+	<img src="https://img.shields.io/badge/docusaurus-glaciermodding.org-brightgreen" />
 </a>
 
 # Glacier 2 Blender addon
