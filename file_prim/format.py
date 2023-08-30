@@ -271,6 +271,8 @@ class PrimMesh:
         self.pos_scale[1] = (bb_max[1] - bb_min[1]) * 0.5
         self.pos_scale[2] = (bb_max[2] - bb_min[2]) * 0.5
         self.pos_scale[3] = 0.5
+        for i in range(3):
+            self.pos_scale[i] = 0.5 if self.pos_scale[i] <= 0.0 else self.pos_scale[i]
 
         # set position bias
         self.pos_bias[0] = (bb_max[0] + bb_min[0]) * 0.5
@@ -286,6 +288,8 @@ class PrimMesh:
         # set UV scale
         self.tex_scale_bias[0] = (bb_uv_max[0] - bb_uv_min[0]) * 0.5
         self.tex_scale_bias[1] = (bb_uv_max[1] - bb_uv_min[1]) * 0.5
+        for i in range(2):
+            self.tex_scale_bias[i] = 0.5 if self.tex_scale_bias[i] <= 0.0 else self.tex_scale_bias[i]
 
         # set UV bias
         self.tex_scale_bias[2] = (bb_uv_max[0] + bb_uv_min[0]) * 0.5
