@@ -16,7 +16,6 @@ glTF-Blender-IO license: https://github.com/KhronosGroup/glTF-Blender-IO/blob/ma
 
 
 class Bone:
-
     def __init__(self):
         self.name = None
         self.children = []
@@ -73,7 +72,6 @@ def nearby_signed_perm_matrix(rot: Quaternion):
 
 
 def scale_rot_swap_matrix(rot: Quaternion):
-
     m = nearby_signed_perm_matrix(rot)  # snap to signed perm matrix
     m.transpose()  # invert permutation
     for i in range(3):
@@ -86,10 +84,7 @@ def pick_bone_length(bones: [], bone_id: int):
     """Return the bone length by finding the smallest child length"""
     bone = bones[bone_id]
 
-    child_locs = [
-        bones[child].editbone_trans
-        for child in bone.children
-    ]
+    child_locs = [bones[child].editbone_trans for child in bone.children]
     child_locs = [loc for loc in child_locs]
     if child_locs:
         return min(loc.length for loc in child_locs)
@@ -100,10 +95,7 @@ def pick_bone_length(bones: [], bone_id: int):
 def pick_bone_rotation(bones: [], bone_id: int, parent_rot: Quaternion):
     bone = bones[bone_id]
 
-    child_locs = [
-        bones[child].editbone_trans
-        for child in bone.children
-    ]
+    child_locs = [bones[child].editbone_trans for child in bone.children]
     child_locs = [loc for loc in child_locs]
     if child_locs:
         centroid = sum(child_locs, Vector((0, 0, 0)))
@@ -115,14 +107,12 @@ def pick_bone_rotation(bones: [], bone_id: int, parent_rot: Quaternion):
 
 
 def local_rotation(bones: [], bone_id: int, rot: Quaternion):
-
     bones[bone_id].rotation_before @= rot
 
     # Append the inverse rotation after children's TRS to cancel it out.
     rot_inv = rot.conjugated()
     for child in bones[bone_id].children:
-        bones[child].rotation_after = \
-            rot_inv @ bones[child].rotation_after
+        bones[child].rotation_after = rot_inv @ bones[child].rotation_after
 
 
 def rotate_edit_bone(bones: [], bone_id: int, rot: Quaternion):
@@ -201,7 +191,9 @@ def compute_bones(borg):
 
 def get_bone_trs(svq):
     t = Vector([svq.position[0], -svq.position[2], svq.position[1]])
-    r = Quaternion([svq.rotation[3], -svq.rotation[0], svq.rotation[2], -svq.rotation[1]])
+    r = Quaternion(
+        [svq.rotation[3], -svq.rotation[0], svq.rotation[2], -svq.rotation[1]]
+    )
     s = Vector([1, 1, 1])
     return t, r, s
 
@@ -212,9 +204,11 @@ def init_bones(borg, bones):
         bones[i] = bl_bone
         bl_bone.name = bone.name
         bl_bone.base_trs = get_bone_trs(borg.bind_poses[i])
-        if i == 0:  # if root we rotate the bone. This will result in a rotation of the entire rig
-            rot = mathutils.Euler((0.0, 0.0, 0.0), 'XYZ')
-            rot.rotate_axis('X', math.radians(-90.0))
+        if (
+            i == 0
+        ):  # if root we rotate the bone. This will result in a rotation of the entire rig
+            rot = mathutils.Euler((0.0, 0.0, 0.0), "XYZ")
+            rot.rotate_axis("X", math.radians(-90.0))
             bl_bone.base_trs[1].rotate(rot)
 
         bl_bone.bind_trans = Vector(bl_bone.base_trs[0])
@@ -246,14 +240,13 @@ def load_borg(operator, context, filepath):
     #    print(print(', '.join("%s: %s" % item for item in vars(constr).items())))
     #    print()
 
-    blender_arma = bpy.data.objects.new('temp_obj', amt)
+    blender_arma = bpy.data.objects.new("temp_obj", amt)
     bpy.context.collection.objects.link(blender_arma)
     armature = blender_arma.data
 
     bone_ids = []
 
     def visit(id):
-
         bone_ids.append(id)
         for child in bones[id].children:
             visit(child)
@@ -261,8 +254,8 @@ def load_borg(operator, context, filepath):
     visit(0)
 
     # Switch to edit mode to create all edit bones
-    if bpy.context.mode != 'OBJECT':
-        bpy.ops.object.mode_set(mode='OBJECT')
+    if bpy.context.mode != "OBJECT":
+        bpy.ops.object.mode_set(mode="OBJECT")
     bpy.context.view_layer.objects.active = blender_arma
     bpy.ops.object.mode_set(mode="EDIT")
 
@@ -300,7 +293,7 @@ def load_borg(operator, context, filepath):
         t, r, s = bone.trs()
         et, er = bone.editbone_trans, bone.editbone_rot
         pose_bone.location = er.conjugated() @ (t - et)
-        pose_bone.rotation_mode = 'QUATERNION'
+        pose_bone.rotation_mode = "QUATERNION"
         pose_bone.rotation_quaternion = er.conjugated() @ r
         pose_bone.scale = s
 

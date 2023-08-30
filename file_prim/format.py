@@ -21,6 +21,7 @@ class PrimObjectSubtype(enum.IntEnum):
     The StandarduvX types are not used within the H2016, H2 and H3 games,
     a probable cause for this is the introduction of a num_uvchannels variable.
     """
+
     Standard = 0
     Linked = 1
     Weighted = 2
@@ -33,6 +34,7 @@ class PrimType(enum.IntEnum):
     """
     A type property attached to all headers found within the prim format
     """
+
     Unknown = 0
     ObjectHeader = 1
     Mesh = 2
@@ -83,17 +85,31 @@ class PrimObjectHeaderPropertyFlags:
         br.writeUInt(self.bitfield)
 
     def toString(self):
-        return ("Object Header property flags:\n" +
-                "\thas bones:\t\t" + str(self.hasBones()) + "\n" +
-                "\thas frames:\t\t" + str(self.hasFrames()) + "\n" +
-                "\tis linked object:\t" + str(self.isLinkedObject()) + "\n" +
-                "\tis weighted object:\t" + str(self.isWeightedObject()) + "\n" +
-                "\tuse bounds:\t\t" + str(self.useBounds()) + "\n" +
-                "\thas high resolution:\t" + str(self.hasHighResolution()) + "\n")
+        return (
+            "Object Header property flags:\n"
+            + "\thas bones:\t\t"
+            + str(self.hasBones())
+            + "\n"
+            + "\thas frames:\t\t"
+            + str(self.hasFrames())
+            + "\n"
+            + "\tis linked object:\t"
+            + str(self.isLinkedObject())
+            + "\n"
+            + "\tis weighted object:\t"
+            + str(self.isWeightedObject())
+            + "\n"
+            + "\tuse bounds:\t\t"
+            + str(self.useBounds())
+            + "\n"
+            + "\thas high resolution:\t"
+            + str(self.hasHighResolution())
+            + "\n"
+        )
 
 
 class PrimObjectPropertyFlags:
-    """Mesh specific properties, used in Mesh and SubMesh. """
+    """Mesh specific properties, used in Mesh and SubMesh."""
 
     def __init__(self, value: int):
         self.bitfield = value
@@ -141,14 +157,30 @@ class PrimObjectPropertyFlags:
         br.writeUByte(self.bitfield)
 
     def toString(self):
-        return ("Object property flags:\n" +
-                "\tX axis locked:\t\t" + str(self.isXaxisLocked()) + "\n" +
-                "\tY axis locked:\t\t" + str(self.isYaxisLocked()) + "\n" +
-                "\tZ axis locked:\t\t" + str(self.isZaxisLocked()) + "\n" +
-                "\tis high resolution:\t" + str(self.isHighResolution()) + "\n" +
-                "\thas ps3 edge:\t\t" + str(self.hasPs3Edge()) + "\n" +
-                "\tuses color1:\t\t" + str(self.useColor1()) + "\n" +
-                "\thas no physics props:\t" + str(self.hasNoPhysicsProp()) + "\n")
+        return (
+            "Object property flags:\n"
+            + "\tX axis locked:\t\t"
+            + str(self.isXaxisLocked())
+            + "\n"
+            + "\tY axis locked:\t\t"
+            + str(self.isYaxisLocked())
+            + "\n"
+            + "\tZ axis locked:\t\t"
+            + str(self.isZaxisLocked())
+            + "\n"
+            + "\tis high resolution:\t"
+            + str(self.isHighResolution())
+            + "\n"
+            + "\thas ps3 edge:\t\t"
+            + str(self.hasPs3Edge())
+            + "\n"
+            + "\tuses color1:\t\t"
+            + str(self.useColor1())
+            + "\n"
+            + "\thas no physics props:\t"
+            + str(self.hasNoPhysicsProp())
+            + "\n"
+        )
 
 
 class BoxColiEntry:
@@ -209,7 +241,9 @@ class PrimMesh:
 
     def __init__(self):
         self.prim_object = PrimObject(2)
-        self.pos_scale = [1.0] * 4  # TODO: Remove this, should be calculated when exporting
+        self.pos_scale = [
+            1.0
+        ] * 4  # TODO: Remove this, should be calculated when exporting
         self.pos_bias = [0.0] * 4  # TODO: No need to keep these around
         self.tex_scale_bias = [1.0, 1.0, 0.0, 0.0]  # TODO: This can also go
         self.cloth_id = PrimMeshClothId(0)
@@ -234,7 +268,9 @@ class PrimMesh:
         sub_mesh_offset = br.readUInt()
         br.seek(sub_mesh_offset)
         self.sub_mesh.read(br, self, flags)
-        br.seek(old_offset)  # reset offset to end of header, this is required for WeightedPrimMesh
+        br.seek(
+            old_offset
+        )  # reset offset to end of header, this is required for WeightedPrimMesh
 
     def write(self, br, flags):
         self.update()
@@ -280,7 +316,6 @@ class PrimMesh:
         self.pos_bias[2] = (bb_max[2] + bb_min[2]) * 0.5
         self.pos_bias[3] = 1
 
-
         bb_uv = self.sub_mesh.calc_UVbb()
         bb_uv_min = bb_uv[0]
         bb_uv_max = bb_uv[1]
@@ -289,7 +324,9 @@ class PrimMesh:
         self.tex_scale_bias[0] = (bb_uv_max[0] - bb_uv_min[0]) * 0.5
         self.tex_scale_bias[1] = (bb_uv_max[1] - bb_uv_min[1]) * 0.5
         for i in range(2):
-            self.tex_scale_bias[i] = 0.5 if self.tex_scale_bias[i] <= 0.0 else self.tex_scale_bias[i]
+            self.tex_scale_bias[i] = (
+                0.5 if self.tex_scale_bias[i] <= 0.0 else self.tex_scale_bias[i]
+            )
 
         # set UV bias
         self.tex_scale_bias[2] = (bb_uv_max[0] + bb_uv_min[0]) * 0.5
@@ -368,23 +405,34 @@ class VertexBuffer:
     def __init__(self):
         self.vertices = []
 
-    def read(self, br, num_vertices: int,
-             num_uvchannels: int,
-             mesh: PrimMesh,
-             sub_mesh_color1: [],
-             sub_mesh_flags: PrimObjectPropertyFlags,
-             flags: PrimObjectHeaderPropertyFlags):
-
+    def read(
+        self,
+        br,
+        num_vertices: int,
+        num_uvchannels: int,
+        mesh: PrimMesh,
+        sub_mesh_color1: [],
+        sub_mesh_flags: PrimObjectPropertyFlags,
+        flags: PrimObjectHeaderPropertyFlags,
+    ):
         self.vertices = [Vertex() for _ in range(num_vertices)]
 
         for vertex in self.vertices:
             if mesh.prim_object.properties.isHighResolution():
-                vertex.position[0] = (br.readFloat() * mesh.pos_scale[0]) + mesh.pos_bias[0]
-                vertex.position[1] = (br.readFloat() * mesh.pos_scale[1]) + mesh.pos_bias[1]
-                vertex.position[2] = (br.readFloat() * mesh.pos_scale[2]) + mesh.pos_bias[2]
+                vertex.position[0] = (
+                    br.readFloat() * mesh.pos_scale[0]
+                ) + mesh.pos_bias[0]
+                vertex.position[1] = (
+                    br.readFloat() * mesh.pos_scale[1]
+                ) + mesh.pos_bias[1]
+                vertex.position[2] = (
+                    br.readFloat() * mesh.pos_scale[2]
+                ) + mesh.pos_bias[2]
                 vertex.position[3] = 1
             else:
-                vertex.position = br.readShortQuantizedVecScaledBiased(4, mesh.pos_scale, mesh.pos_bias)
+                vertex.position = br.readShortQuantizedVecScaledBiased(
+                    4, mesh.pos_scale, mesh.pos_bias
+                )
 
         if flags.isWeightedObject():
             for vertex in self.vertices:
@@ -414,8 +462,9 @@ class VertexBuffer:
             vertex.bitangent = br.readUByteQuantizedVec(4)
             vertex.uv = [0] * num_uvchannels
             for uv in range(num_uvchannels):
-                vertex.uv[uv] = br.readShortQuantizedVecScaledBiased(2, mesh.tex_scale_bias[0:2],
-                                                                     mesh.tex_scale_bias[2:4])
+                vertex.uv[uv] = br.readShortQuantizedVecScaledBiased(
+                    2, mesh.tex_scale_bias[0:2], mesh.tex_scale_bias[2:4]
+                )
 
         if not mesh.prim_object.properties.useColor1() or flags.isWeightedObject():
             if not sub_mesh_flags.useColor1():
@@ -428,10 +477,13 @@ class VertexBuffer:
                     vertex.color[2] = sub_mesh_color1[2]
                     vertex.color[3] = sub_mesh_color1[3]
 
-    def write(self, br, mesh,
-              sub_mesh_flags: PrimObjectPropertyFlags,
-              flags: PrimObjectHeaderPropertyFlags):
-
+    def write(
+        self,
+        br,
+        mesh,
+        sub_mesh_flags: PrimObjectPropertyFlags,
+        flags: PrimObjectHeaderPropertyFlags,
+    ):
         if len(self.vertices) > 0:
             num_uvchannels = len(self.vertices[0].uv)
         else:
@@ -439,11 +491,19 @@ class VertexBuffer:
         # positions
         for vertex in self.vertices:
             if mesh.prim_object.properties.isHighResolution():
-                br.writeFloat((vertex.position[0] - mesh.pos_bias[0]) / mesh.pos_scale[0])
-                br.writeFloat((vertex.position[1] - mesh.pos_bias[1]) / mesh.pos_scale[1])
-                br.writeFloat((vertex.position[2] - mesh.pos_bias[2]) / mesh.pos_scale[2])
+                br.writeFloat(
+                    (vertex.position[0] - mesh.pos_bias[0]) / mesh.pos_scale[0]
+                )
+                br.writeFloat(
+                    (vertex.position[1] - mesh.pos_bias[1]) / mesh.pos_scale[1]
+                )
+                br.writeFloat(
+                    (vertex.position[2] - mesh.pos_bias[2]) / mesh.pos_scale[2]
+                )
             else:
-                br.writeShortQuantizedVecScaledBiased(vertex.position, mesh.pos_scale, mesh.pos_bias)
+                br.writeShortQuantizedVecScaledBiased(
+                    vertex.position, mesh.pos_scale, mesh.pos_bias
+                )
 
         # joints and weights
         if flags.isWeightedObject():
@@ -469,8 +529,9 @@ class VertexBuffer:
             br.writeUByteQuantizedVec(vertex.tangent)
             br.writeUByteQuantizedVec(vertex.bitangent)
             for uv in range(num_uvchannels):
-                br.writeShortQuantizedVecScaledBiased(vertex.uv[uv], mesh.tex_scale_bias[0:2],
-                                                      mesh.tex_scale_bias[2:4])
+                br.writeShortQuantizedVecScaledBiased(
+                    vertex.uv[uv], mesh.tex_scale_bias[0:2], mesh.tex_scale_bias[2:4]
+                )
 
         # color
         if not mesh.prim_object.properties.useColor1() or flags.isWeightedObject():
@@ -508,8 +569,15 @@ class PrimSubMesh:
 
         # detour for vertices
         br.seek(vertices_offset)
-        self.vertexBuffer.read(br, num_vertices, num_uvchannels, mesh, self.prim_object.color1,
-                               self.prim_object.properties, flags)
+        self.vertexBuffer.read(
+            br,
+            num_vertices,
+            num_uvchannels,
+            mesh,
+            self.prim_object.color1,
+            self.prim_object.properties,
+            flags,
+        )
 
         # detour for indices
         br.seek(indices_offset)
@@ -566,7 +634,9 @@ class PrimSubMesh:
         br.writeUInt(num_vertices)
         br.writeUInt(vert_offset)
         br.writeUInt(len(self.indices))
-        br.writeUInt(0)  # additional indices kept at 0, because we do not know their purpose
+        br.writeUInt(
+            0
+        )  # additional indices kept at 0, because we do not know their purpose
         br.writeUInt(index_offset)
         br.writeUInt(coll_offset)
         br.writeUInt(cloth_offset)
@@ -599,7 +669,6 @@ class PrimSubMesh:
         return [bb_min, bb_max]
 
     def calc_UVbb(self):
-
         bb_max = [-sys.float_info.max] * 3
         bb_min = [sys.float_info.max] * 3
         layer = 0
@@ -626,7 +695,9 @@ class PrimObject:
         self.zoffset = 0
         self.material_id = 0
         self.wire_color = 0xFFFFFFFF
-        self.color1 = [0xFF] * 4  # global color used when useColor1 is set. only works inside PrimSubMesh
+        self.color1 = [
+            0xFF
+        ] * 4  # global color used when useColor1 is set. only works inside PrimSubMesh
         self.min = [0] * 3
         self.max = [0] * 3
 
@@ -637,7 +708,9 @@ class PrimObject:
         self.lodmask = br.readUByte()
         self.variant_id = br.readUByte()
         self.zbias = br.readUByte()  # draws mesh in front of others
-        self.zoffset = br.readUByte()  # will move the mesh towards the camera depending on the distance to it
+        self.zoffset = (
+            br.readUByte()
+        )  # will move the mesh towards the camera depending on the distance to it
         self.material_id = br.readUShort()
         self.wire_color = br.readUInt()
 
@@ -697,7 +770,6 @@ class BoneInfo:
             accel_entry.read(br)
 
     def write(self, br):
-
         br.writeUShort(self.total_size)
         br.writeUShort(len(self.accel_entries))
         for i in range(255):
@@ -717,7 +789,9 @@ class BoneIndices:
     def read(self, br):
         num_indices = br.readUInt()
         self.bone_indices = [0] * num_indices
-        br.seek(br.tell() - 4)  # aligns the data to match the offset defined in the BonAccel entries
+        br.seek(
+            br.tell() - 4
+        )  # aligns the data to match the offset defined in the BonAccel entries
         for i in range(num_indices):
             self.bone_indices[i] = br.readUShort()
 
@@ -737,7 +811,6 @@ class ClothData:
         self.cloth_data = [0] * self.size
 
     def read(self, br, mesh: PrimMesh, sub_mesh: PrimSubMesh):
-
         if mesh.cloth_id.isSmoll():
             self.size = br.readUInt()
         else:
@@ -831,7 +904,9 @@ class PrimObjectHeader:
                 obj_offsets.append(obj.write(br, self.property_flags))
 
                 if self.property_flags.isWeightedObject():
-                    self.append_bb(obj.prim_mesh.prim_object.min, obj.prim_mesh.prim_object.max)
+                    self.append_bb(
+                        obj.prim_mesh.prim_object.min, obj.prim_mesh.prim_object.max
+                    )
                 else:
                     self.append_bb(obj.prim_object.min, obj.prim_object.max)
 
@@ -869,7 +944,7 @@ class PrimObjectHeader:
 
 
 def readHeader(br):
-    """"Global function to read only the header of a RenderPrimitive, used to fast file identification"""
+    """ "Global function to read only the header of a RenderPrimitive, used to fast file identification"""
     offset = br.readUInt()
     br.seek(offset)
     header_values = PrimObjectHeader()

@@ -2,15 +2,17 @@ import bpy
 from .GlacierEngine import GlacierEngine
 from .. import BlenderUI
 
-from bpy.props import (StringProperty,
-                       BoolProperty,
-                       BoolVectorProperty,
-                       PointerProperty,
-                       )
-from bpy.types import (Panel,
-                       Operator,
-                       PropertyGroup,
-                       )
+from bpy.props import (
+    StringProperty,
+    BoolProperty,
+    BoolVectorProperty,
+    PointerProperty,
+)
+from bpy.types import (
+    Panel,
+    Operator,
+    PropertyGroup,
+)
 
 # ------------------------------------------------------------------------
 #    Global Animation Object
@@ -23,13 +25,14 @@ glacier_engine = GlacierEngine()
 #    Scene Properties
 # ------------------------------------------------------------------------
 
+
 class MyProperties(PropertyGroup):
     mjbaimport_path: StringProperty(
         name="MJBA Import Path",
         description="Path to the MJBA file to import",
         default="",
         maxlen=1024,
-        subtype='FILE_PATH',
+        subtype="FILE_PATH",
     )
 
     mjbaexport_path: StringProperty(
@@ -37,7 +40,7 @@ class MyProperties(PropertyGroup):
         description="Choose where to save the MJBA file",
         default="",
         maxlen=1024,
-        subtype='FILE_PATH'
+        subtype="FILE_PATH",
     )
 
     mrtrimport_path: StringProperty(
@@ -45,7 +48,7 @@ class MyProperties(PropertyGroup):
         description="Path to the MRTR file to import",
         default="",
         maxlen=1024,
-        subtype='FILE_PATH'
+        subtype="FILE_PATH",
     )
 
     mrtrexport_path: StringProperty(
@@ -53,7 +56,7 @@ class MyProperties(PropertyGroup):
         description="Choose where to save the MRTR file",
         default="",
         maxlen=1024,
-        subtype='FILE_PATH'
+        subtype="FILE_PATH",
     )
 
     mjba_hash: StringProperty(
@@ -80,25 +83,24 @@ class MyProperties(PropertyGroup):
     mjba_worldtransform: BoolProperty(
         name="World Transform",
         description="Toggle whether World Transform is applied to the animation",
-        default=False
+        default=False,
     )
 
     meshpicker: PointerProperty(
-        name="Mesh Picker",
-        description="Choose a mesh",
-        type=bpy.types.Object
+        name="Mesh Picker", description="Choose a mesh", type=bpy.types.Object
     )
 
     animationpicker: PointerProperty(
         name="Animation Picker",
         description="Choose an animation",
-        type=bpy.types.Action
+        type=bpy.types.Action,
     )
 
 
 # ------------------------------------------------------------------------
 #    Operators
 # ------------------------------------------------------------------------
+
 
 class Glacier_ImportMJBA(Operator):
     bl_label = "Import MJBA/MRTR"
@@ -108,18 +110,25 @@ class Glacier_ImportMJBA(Operator):
         scene = context.scene
         mytool = scene.my_tool
         if mytool.mjbaimport_path == "" or mytool.mrtrimport_path == "":
-            BlenderUI.MessageBox("You must import an MJBA and it's corresponding MRTR!", icon="ERROR")
-            return {'FINISHED'}
+            BlenderUI.MessageBox(
+                "You must import an MJBA and it's corresponding MRTR!", icon="ERROR"
+            )
+            return {"FINISHED"}
         if mytool.meshpicker == None:
             BlenderUI.MessageBox("No object selected!", icon="ERROR")
-            return {'FINISHED'}
-        if mytool.meshpicker.type != 'ARMATURE':
-            BlenderUI.MessageBox(mytool.meshpicker.name + " does not have an armature!", icon="ERROR")
-            return {'FINISHED'}
+            return {"FINISHED"}
+        if mytool.meshpicker.type != "ARMATURE":
+            BlenderUI.MessageBox(
+                mytool.meshpicker.name + " does not have an armature!", icon="ERROR"
+            )
+            return {"FINISHED"}
         global animation
-        glacier_engine.import_animation(mytool.meshpicker, bpy.path.abspath(mytool.mjbaimport_path),
-                                        bpy.path.abspath(mytool.mrtrimport_path))
-        return {'FINISHED'}
+        glacier_engine.import_animation(
+            mytool.meshpicker,
+            bpy.path.abspath(mytool.mjbaimport_path),
+            bpy.path.abspath(mytool.mrtrimport_path),
+        )
+        return {"FINISHED"}
 
 
 class Glacier_ExportMJBA(Operator):
@@ -131,24 +140,35 @@ class Glacier_ExportMJBA(Operator):
         mytool = scene.my_tool
         if mytool.meshpicker == None:
             BlenderUI.MessageBox("No object selected!", icon="ERROR")
-            return {'FINISHED'}
-        if mytool.meshpicker.type != 'ARMATURE':
-            BlenderUI.MessageBox(mytool.meshpicker.name + " does not have an armature!", icon="ERROR")
-            return {'FINISHED'}
+            return {"FINISHED"}
+        if mytool.meshpicker.type != "ARMATURE":
+            BlenderUI.MessageBox(
+                mytool.meshpicker.name + " does not have an armature!", icon="ERROR"
+            )
+            return {"FINISHED"}
         if mytool.meshpicker.animation_data == None:
-            BlenderUI.MessageBox(mytool.meshpicker.name + " does not have any animation data!", icon="ERROR")
-            return {'FINISHED'}
+            BlenderUI.MessageBox(
+                mytool.meshpicker.name + " does not have any animation data!",
+                icon="ERROR",
+            )
+            return {"FINISHED"}
         if mytool.meshpicker.animation_data.action == None:
-            BlenderUI.MessageBox(mytool.meshpicker.name + " does not have any animation data action!", icon="ERROR")
-            return {'FINISHED'}
+            BlenderUI.MessageBox(
+                mytool.meshpicker.name + " does not have any animation data action!",
+                icon="ERROR",
+            )
+            return {"FINISHED"}
         if mytool.meshpicker.animation_data.action.fcurves == None:
-            BlenderUI.MessageBox(mytool.meshpicker.name + " does not have any animation data action fcurves!",
-                                 icon="ERROR")
-            return {'FINISHED'}
+            BlenderUI.MessageBox(
+                mytool.meshpicker.name
+                + " does not have any animation data action fcurves!",
+                icon="ERROR",
+            )
+            return {"FINISHED"}
         global animation
         glacier_engine.export_animation(mytool.meshpicker)
 
-        return {'FINISHED'}
+        return {"FINISHED"}
 
 
 class Glacier_ExportMRTR(Operator):
@@ -161,19 +181,20 @@ class Glacier_ExportMRTR(Operator):
         global animation
         glacier_engine.export_animation(mytool.meshpicker)
 
-        return {'FINISHED'}
+        return {"FINISHED"}
 
 
 # ------------------------------------------------------------------------
 #    Panels
 # ------------------------------------------------------------------------
 
+
 class GLACIER_PT_AnimImportPanel(Panel):
     bl_label = "Glacier Engine Import"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "scene"
-    bl_options = {'DEFAULT_CLOSED'}
+    bl_options = {"DEFAULT_CLOSED"}
 
     def draw(self, context):
         layout = self.layout
@@ -185,9 +206,13 @@ class GLACIER_PT_AnimImportPanel(Panel):
         layout.prop(mytool, "mrtrimport_path")
         layout.operator("glacier.importmjba")
         layout.separator()
-        layout.label(text="Note: You will first need to import a GLB model from the game.")
+        layout.label(
+            text="Note: You will first need to import a GLB model from the game."
+        )
         layout.label(text="Or you can use the supplied template model")
-        layout.label(text="if you are making an animation for the default character rig.")
+        layout.label(
+            text="if you are making an animation for the default character rig."
+        )
 
 
 class GLACIER_PT_AnimExportPanel(Panel):
@@ -195,7 +220,7 @@ class GLACIER_PT_AnimExportPanel(Panel):
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "scene"
-    bl_options = {'DEFAULT_CLOSED'}
+    bl_options = {"DEFAULT_CLOSED"}
 
     def draw(self, context):
         layout = self.layout
@@ -206,7 +231,9 @@ class GLACIER_PT_AnimExportPanel(Panel):
         layout.prop(mytool, "mjba_hash")
         layout.prop(mytool, "mrtr_dependencyhash")
         layout.prop(mytool, "atmd_dependencyhash")
-        layout.label(text="Note: You only need a custom ATMD file if you have want custom audio events")
+        layout.label(
+            text="Note: You only need a custom ATMD file if you have want custom audio events"
+        )
         layout.separator()
         layout.prop(mytool, "meshpicker")
         layout.prop(mytool, "mjbaexport_path")
@@ -216,7 +243,9 @@ class GLACIER_PT_AnimExportPanel(Panel):
         layout.separator()
         layout.prop(mytool, "mrtrexport_path")
         layout.label(text="Location to save the MRTR JSON file")
-        layout.label(text="Note: You only need a custom MRTR file if you have added/removed any of the bones")
+        layout.label(
+            text="Note: You only need a custom MRTR file if you have added/removed any of the bones"
+        )
         layout.operator("glacier.exportmrtr")
 
 
@@ -230,7 +259,7 @@ classes = (
     Glacier_ExportMJBA,
     Glacier_ExportMRTR,
     GLACIER_PT_AnimImportPanel,
-    GLACIER_PT_AnimExportPanel
+    GLACIER_PT_AnimExportPanel,
 )
 
 

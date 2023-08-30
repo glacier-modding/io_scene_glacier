@@ -45,11 +45,14 @@ class MrtrBoneMap:
         self.mrtr_bone_offset = br.readUInt64()
         self.used_bone_offset = br.readUInt64()
         self.mrtr_bone_indices = br.readShortVec(self.mrtr_bone_count)
-        br.seekBy(self.used_bone_offset - self.mrtr_bone_offset - self.mrtr_bone_count * 2)
+        br.seekBy(
+            self.used_bone_offset - self.mrtr_bone_offset - self.mrtr_bone_count * 2
+        )
         self.used_bone_indices = br.readShortVec(self.used_bone_count)
         br.seekBy(0x80 - (self.used_bone_offset + self.used_bone_count * 2) % 0x80)
         br.seekBy(
-            0x50)  # this brings you to the start of the 'essential' animation header, these bytes are the same across all MJBAs
+            0x50
+        )  # this brings you to the start of the 'essential' animation header, these bytes are the same across all MJBAs
 
 
 class Animation:
@@ -79,16 +82,30 @@ class Animation:
             if self.has_bind_poses:
                 self.bones_with_static_bind_poses = br.readUBytesToBitBoolArray(16)
                 br.seekBy(8)
-        self.static_bone_quaternions = br.readUShortToFloatVec(self.static_quaternion_bone_count * 4)
+        self.static_bone_quaternions = br.readUShortToFloatVec(
+            self.static_quaternion_bone_count * 4
+        )
         self.dynamic_bone_quaternions = br.readUShortToFloatVec(
-            (self.used_bone_count - self.static_quaternion_bone_count) * 4 * self.frame_count_1)
+            (self.used_bone_count - self.static_quaternion_bone_count)
+            * 4
+            * self.frame_count_1
+        )
         if self.has_bind_poses:
-            self.bone_bind_poses_quaternions = br.readUShortToFloatVec(self.bones_with_static_bind_poses["count"] * 8)
-        self.static_bone_transforms = br.readUShortToFloatVec(self.static_transform_bone_count * 4)
+            self.bone_bind_poses_quaternions = br.readUShortToFloatVec(
+                self.bones_with_static_bind_poses["count"] * 8
+            )
+        self.static_bone_transforms = br.readUShortToFloatVec(
+            self.static_transform_bone_count * 4
+        )
         self.dynamic_bone_transforms = br.readUShortToFloatVec(
-            (self.used_bone_count - self.static_transform_bone_count) * 4 * self.frame_count_1)
+            (self.used_bone_count - self.static_transform_bone_count)
+            * 4
+            * self.frame_count_1
+        )
         if self.has_bind_poses:
-            self.bone_bind_poses_transforms = br.readUShortToFloatVec(self.bones_with_static_bind_poses["count"] * 8)
+            self.bone_bind_poses_transforms = br.readUShortToFloatVec(
+                self.bones_with_static_bind_poses["count"] * 8
+            )
         br.seekBy(self.animation_data_size - (br.tell() - animation_data_size_offset))
         if self.animation_data_size > 0:
             self.world_transforms = br.readFloatVec(self.frame_count_1 * 8)

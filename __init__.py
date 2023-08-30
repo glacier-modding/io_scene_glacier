@@ -14,24 +14,24 @@ from . import file_mjba
 from . import file_borg
 
 
-from bpy.props import (BoolVectorProperty,
-                       PointerProperty,
-                       )
+from bpy.props import (
+    BoolVectorProperty,
+    PointerProperty,
+)
 
-from bpy.types import (PropertyGroup,
-                       )
+from bpy.types import (
+    PropertyGroup,
+)
 
 # ------------------------------------------------------------------------
 #    Scene Properties
 # ------------------------------------------------------------------------
 
+
 class GlacierSettings(PropertyGroup):
-
     def show_lod_update(self, context):
-
-        mesh_obs = [o for o in bpy.context.scene.objects if o.type == 'MESH']
+        mesh_obs = [o for o in bpy.context.scene.objects if o.type == "MESH"]
         for obj in mesh_obs:
-
             should_show = False
             for bit in range(8):
                 if self.show_lod[bit]:
@@ -43,11 +43,11 @@ class GlacierSettings(PropertyGroup):
         return None
 
     show_lod: BoolVectorProperty(
-        name='show_lod',
-        description='Set which LOD levels should be shown',
+        name="show_lod",
+        description="Set which LOD levels should be shown",
         default=(True, True, True, True, True, True, True, True),
         size=8,
-        subtype='LAYER',
+        subtype="LAYER",
         update=show_lod_update,
     )
 
@@ -56,11 +56,11 @@ class GlacierSettings(PropertyGroup):
 #    Panels
 # ------------------------------------------------------------------------
 class GLACIER_PT_settingsPanel(bpy.types.Panel):
-    bl_idname = 'GLACIER_PT_settingsPanel'
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
-    bl_category = 'Glacier'
-    bl_label = 'Settings'
+    bl_idname = "GLACIER_PT_settingsPanel"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "Glacier"
+    bl_label = "Settings"
 
     def draw(self, context):
         glacier_settings = context.scene.glacier_settings
@@ -69,23 +69,24 @@ class GLACIER_PT_settingsPanel(bpy.types.Panel):
         layout.label(text="show LOD:")
 
         row = layout.row(align=True)
-        for i, name in enumerate(["high", "   ", "   ", "   ", "   ", "   ", "   ", "low"]):
+        for i, name in enumerate(
+            ["high", "   ", "   ", "   ", "   ", "   ", "   ", "low"]
+        ):
             row.prop(glacier_settings, "show_lod", index=i, text=name, toggle=True)
+
 
 # ------------------------------------------------------------------------
 #    Registration
 # ------------------------------------------------------------------------
 
-classes = [
-    GlacierSettings,
-    GLACIER_PT_settingsPanel
-]
+classes = [GlacierSettings, GLACIER_PT_settingsPanel]
 
 modules = [
     file_prim,
     # file_mjba, # WIP module. enable at own risk
-    file_borg
+    file_borg,
 ]
+
 
 def register():
     from bpy.utils import register_class
@@ -107,7 +108,7 @@ def unregister():
 
     for cls in classes:
         unregister_class(cls)
-    
+
     del bpy.types.Scene.glacier_settings
 
 

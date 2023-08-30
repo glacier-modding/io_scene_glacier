@@ -19,10 +19,14 @@ class Animation:
         with open(self.mrtr_path, "rb") as f:
             self.mrtr = MorphemeRig()
             self.mrtr.read(BinaryReader(f))
-        if self.mjba.mrtr_bone_map.mrtr_bone_count != len(self.mrtr.hierarchy.bone_parents):
-            BlenderUI.MessageBox("The MJBA and MRTR have mismatched bone counts!", icon="ERROR")
+        if self.mjba.mrtr_bone_map.mrtr_bone_count != len(
+            self.mrtr.hierarchy.bone_parents
+        ):
+            BlenderUI.MessageBox(
+                "The MJBA and MRTR have mismatched bone counts!", icon="ERROR"
+            )
             return
-        bpy.ops.object.mode_set(mode='POSE')
+        bpy.ops.object.mode_set(mode="POSE")
         if self.object.animation_data == None:
             self.object.animation_data_create()
         elif self.object.animation_data.action != None:
@@ -32,15 +36,19 @@ class Animation:
         bpy.context.scene.frame_start = 1
         bpy.context.scene.frame_end = self.mjba.animation.frame_count_1
         bpy.context.scene.frame_current = 1
-        self.twist_bone_map = {"l_forearm": "l_foretwist",
-                               "l_upperarm": "luparmtwist",
-                               "r_forearm": "r_foretwist",
-                               "r_upperarm": "ruparmtwist",
-                               "l_thigh": "lthightwist1",
-                               "r_thigh": "rthightwist1"}
+        self.twist_bone_map = {
+            "l_forearm": "l_foretwist",
+            "l_upperarm": "luparmtwist",
+            "r_forearm": "r_foretwist",
+            "r_upperarm": "ruparmtwist",
+            "l_thigh": "lthightwist1",
+            "r_thigh": "rthightwist1",
+        }
         self.load_bones()
         output = ""
-        for frame in range(bpy.context.scene.frame_start, bpy.context.scene.frame_end + 1):
+        for frame in range(
+            bpy.context.scene.frame_start, bpy.context.scene.frame_end + 1
+        ):
             bpy.context.scene.frame_set(frame)
             frame_index = frame - 1
             flag_for_auto_quaternion = False
@@ -51,28 +59,47 @@ class Animation:
                         # print(bone, "in self bones")
                         if self.bones[bone]["dynamic_transforms"] != None:
                             self.object.pose.bones[pose_bone.name].location = (
-                            self.bones[bone]["dynamic_transforms"][frame_index][0],
-                            self.bones[bone]["dynamic_transforms"][frame_index][1],
-                            self.bones[bone]["dynamic_transforms"][frame_index][2])
-                            self.object.pose.bones[pose_bone.name].keyframe_insert(data_path="location")
+                                self.bones[bone]["dynamic_transforms"][frame_index][0],
+                                self.bones[bone]["dynamic_transforms"][frame_index][1],
+                                self.bones[bone]["dynamic_transforms"][frame_index][2],
+                            )
+                            self.object.pose.bones[pose_bone.name].keyframe_insert(
+                                data_path="location"
+                            )
                         # print(bone, "set transform to", self.bones[bone]["dynamic_transforms"][frame_index], "on frame", frame)
                         if self.bones[bone]["static_transform"] != None:
-                            self.object.pose.bones[pose_bone.name].location = (self.bones[bone]["static_transform"][0],
-                                                                               self.bones[bone]["static_transform"][1],
-                                                                               self.bones[bone]["static_transform"][2])
-                            self.object.pose.bones[pose_bone.name].keyframe_insert(data_path="location")
+                            self.object.pose.bones[pose_bone.name].location = (
+                                self.bones[bone]["static_transform"][0],
+                                self.bones[bone]["static_transform"][1],
+                                self.bones[bone]["static_transform"][2],
+                            )
+                            self.object.pose.bones[pose_bone.name].keyframe_insert(
+                                data_path="location"
+                            )
                         # print(bone, "set transform to", self.bones[bone]["dynamic_transforms"][frame_index], "on frame", frame)
                         if self.bones[bone]["dynamic_quaternions"] != None:
-                            q = mathutils.Quaternion((self.bones[bone]["dynamic_quaternions"][frame_index][3],
-                                                      self.bones[bone]["dynamic_quaternions"][frame_index][0],
-                                                      self.bones[bone]["dynamic_quaternions"][frame_index][1],
-                                                      self.bones[bone]["dynamic_quaternions"][frame_index][2]))
+                            q = mathutils.Quaternion(
+                                (
+                                    self.bones[bone]["dynamic_quaternions"][
+                                        frame_index
+                                    ][3],
+                                    self.bones[bone]["dynamic_quaternions"][
+                                        frame_index
+                                    ][0],
+                                    self.bones[bone]["dynamic_quaternions"][
+                                        frame_index
+                                    ][1],
+                                    self.bones[bone]["dynamic_quaternions"][
+                                        frame_index
+                                    ][2],
+                                )
+                            )
                             # print(q)
-                            '''if self.bones[bone]["bind_poses_quaternions"] != None:
+                            """if self.bones[bone]["bind_poses_quaternions"] != None:
                                 q = q @ mathutils.Quaternion((self.bones[bone]["bind_poses_quaternions"][3],
                                                             self.bones[bone]["bind_poses_quaternions"][0],
                                                             self.bones[bone]["bind_poses_quaternions"][1],
-                                                            self.bones[bone]["bind_poses_quaternions"][2]))'''
+                                                            self.bones[bone]["bind_poses_quaternions"][2]))"""
                             # q = q @ mathutils.Quaternion((0.0, 0.0, 1.0), -math.radians(45.0))
                             # print(q)
                             # rotation_quaternion = (q.w, q.x, q.y, q.z)
@@ -150,10 +177,20 @@ class Animation:
                                                                 self.q4 = q.y
                                                             elif d == 7:
                                                                 self.q4 = -q.y
-                                                            if quaternion_to_try == quaternion_to_try_index:
+                                                            if (
+                                                                quaternion_to_try
+                                                                == quaternion_to_try_index
+                                                            ):
                                                                 rotation_quaternion = (
-                                                                self.q1, self.q2, self.q3, self.q4)
-                                                                if frame_index == 0 and not flag_for_auto_quaternion:
+                                                                    self.q1,
+                                                                    self.q2,
+                                                                    self.q3,
+                                                                    self.q4,
+                                                                )
+                                                                if (
+                                                                    frame_index == 0
+                                                                    and not flag_for_auto_quaternion
+                                                                ):
                                                                     if a == 0:
                                                                         output += "q.w"
                                                                     elif a == 1:
@@ -171,78 +208,138 @@ class Animation:
                                                                     elif a == 7:
                                                                         output += "-q.z"
                                                                     if b == 0:
-                                                                        output += ", q.x"
+                                                                        output += (
+                                                                            ", q.x"
+                                                                        )
                                                                     elif b == 1:
-                                                                        output += ", -q.x"
+                                                                        output += (
+                                                                            ", -q.x"
+                                                                        )
                                                                     elif b == 2:
-                                                                        output += ", q.y"
+                                                                        output += (
+                                                                            ", q.y"
+                                                                        )
                                                                     elif b == 3:
-                                                                        output += ", -q.y"
+                                                                        output += (
+                                                                            ", -q.y"
+                                                                        )
                                                                     elif b == 4:
-                                                                        output += ", q.z"
+                                                                        output += (
+                                                                            ", q.z"
+                                                                        )
                                                                     elif b == 5:
-                                                                        output += ", -q.z"
+                                                                        output += (
+                                                                            ", -q.z"
+                                                                        )
                                                                     elif b == 6:
-                                                                        output += ", q.w"
+                                                                        output += (
+                                                                            ", q.w"
+                                                                        )
                                                                     elif b == 7:
-                                                                        output += ", -q.w"
+                                                                        output += (
+                                                                            ", -q.w"
+                                                                        )
                                                                     if c == 0:
-                                                                        output += ", q.y"
+                                                                        output += (
+                                                                            ", q.y"
+                                                                        )
                                                                     elif c == 1:
-                                                                        output += ", -q.y"
+                                                                        output += (
+                                                                            ", -q.y"
+                                                                        )
                                                                     elif c == 2:
-                                                                        output += ", q.z"
+                                                                        output += (
+                                                                            ", q.z"
+                                                                        )
                                                                     elif c == 3:
-                                                                        output += ", -q.z"
+                                                                        output += (
+                                                                            ", -q.z"
+                                                                        )
                                                                     elif c == 4:
-                                                                        output += ", q.w"
+                                                                        output += (
+                                                                            ", q.w"
+                                                                        )
                                                                     elif c == 5:
-                                                                        output += ", -q.w"
+                                                                        output += (
+                                                                            ", -q.w"
+                                                                        )
                                                                     elif c == 6:
-                                                                        output += ", q.x"
+                                                                        output += (
+                                                                            ", q.x"
+                                                                        )
                                                                     elif c == 7:
-                                                                        output += ", -q.x"
+                                                                        output += (
+                                                                            ", -q.x"
+                                                                        )
                                                                     if d == 0:
                                                                         output += " q.z"
                                                                     elif d == 1:
-                                                                        output += " -q.z"
+                                                                        output += (
+                                                                            " -q.z"
+                                                                        )
                                                                     elif d == 2:
                                                                         output += " q.w"
                                                                     elif d == 3:
-                                                                        output += " -q.w"
+                                                                        output += (
+                                                                            " -q.w"
+                                                                        )
                                                                     elif d == 4:
                                                                         output += " q.x"
                                                                     elif d == 5:
-                                                                        output += " -q.x"
+                                                                        output += (
+                                                                            " -q.x"
+                                                                        )
                                                                     elif d == 6:
                                                                         output += " q.y"
                                                                     elif d == 7:
-                                                                        output += " -q.y"
+                                                                        output += (
+                                                                            " -q.y"
+                                                                        )
                                                                     done = True
-                                                                    flag_for_auto_quaternion = True
+                                                                    flag_for_auto_quaternion = (
+                                                                        True
+                                                                    )
                                                             quaternion_to_try_index += 1
-                            self.object.pose.bones[pose_bone.name].rotation_quaternion = rotation_quaternion
-                            self.object.pose.bones[pose_bone.name].keyframe_insert(data_path="rotation_quaternion")
+                            self.object.pose.bones[
+                                pose_bone.name
+                            ].rotation_quaternion = rotation_quaternion
+                            self.object.pose.bones[pose_bone.name].keyframe_insert(
+                                data_path="rotation_quaternion"
+                            )
                             # print(bone, "set quaternion to", self.bones[bone]["dynamic_quaternions"][frame_index], "on frame", frame)
                             if self.mrtr_bone_to_pose_bone[bone] in self.twist_bone_map:
-                                if self.twist_bone_map[self.mrtr_bone_to_pose_bone[bone]] in self.pose_bones:
-                                    self.object.pose.bones[self.twist_bone_map[
-                                        self.mrtr_bone_to_pose_bone[bone]]].rotation_quaternion = rotation_quaternion
+                                if (
+                                    self.twist_bone_map[
+                                        self.mrtr_bone_to_pose_bone[bone]
+                                    ]
+                                    in self.pose_bones
+                                ):
                                     self.object.pose.bones[
-                                        self.twist_bone_map[self.mrtr_bone_to_pose_bone[bone]]].keyframe_insert(
-                                        data_path="rotation_quaternion")
+                                        self.twist_bone_map[
+                                            self.mrtr_bone_to_pose_bone[bone]
+                                        ]
+                                    ].rotation_quaternion = rotation_quaternion
+                                    self.object.pose.bones[
+                                        self.twist_bone_map[
+                                            self.mrtr_bone_to_pose_bone[bone]
+                                        ]
+                                    ].keyframe_insert(data_path="rotation_quaternion")
                             # print(self.twist_bone_map[self.mrtr_bone_to_pose_bone[bone]], "set quaternion to", self.bones[bone]["dynamic_quaternions"][frame_index], "on frame", frame)
                         if self.bones[bone]["static_quaternion"] != None:
-                            q = mathutils.Quaternion((self.bones[bone]["static_quaternion"][3],
-                                                      self.bones[bone]["static_quaternion"][0],
-                                                      self.bones[bone]["static_quaternion"][1],
-                                                      self.bones[bone]["static_quaternion"][2]))
+                            q = mathutils.Quaternion(
+                                (
+                                    self.bones[bone]["static_quaternion"][3],
+                                    self.bones[bone]["static_quaternion"][0],
+                                    self.bones[bone]["static_quaternion"][1],
+                                    self.bones[bone]["static_quaternion"][2],
+                                )
+                            )
                             # print(q)
-                            '''if self.bones[bone]["bind_poses_quaternions"] != None:
+                            """if self.bones[bone]["bind_poses_quaternions"] != None:
                                 q = q @ mathutils.Quaternion((self.bones[bone]["bind_poses_quaternions"][3],
                                                             self.bones[bone]["bind_poses_quaternions"][0],
                                                             self.bones[bone]["bind_poses_quaternions"][1],
-                                                            self.bones[bone]["bind_poses_quaternions"][2]))'''
+                                                            self.bones[bone]["bind_poses_quaternions"][2]))"""
                             # q = q @ mathutils.Quaternion((0.0, 0.0, 1.0), -math.radians(45.0))
                             # print(q)
                             # rotation_quaternion = (q.w, q.x, q.y, q.z)
@@ -322,10 +419,20 @@ class Animation:
                                                                 self.q4 = q.y
                                                             elif d == 7:
                                                                 self.q4 = -q.y
-                                                            if quaternion_to_try == quaternion_to_try_index:
+                                                            if (
+                                                                quaternion_to_try
+                                                                == quaternion_to_try_index
+                                                            ):
                                                                 rotation_quaternion = (
-                                                                self.q1, self.q2, self.q3, self.q4)
-                                                                if frame_index == 0 and not flag_for_auto_quaternion:
+                                                                    self.q1,
+                                                                    self.q2,
+                                                                    self.q3,
+                                                                    self.q4,
+                                                                )
+                                                                if (
+                                                                    frame_index == 0
+                                                                    and not flag_for_auto_quaternion
+                                                                ):
                                                                     if a == 0:
                                                                         output += "q.w"
                                                                     elif a == 1:
@@ -343,66 +450,122 @@ class Animation:
                                                                     elif a == 7:
                                                                         output += "-q.z"
                                                                     if b == 0:
-                                                                        output += ", q.x"
+                                                                        output += (
+                                                                            ", q.x"
+                                                                        )
                                                                     elif b == 1:
-                                                                        output += ", -q.x"
+                                                                        output += (
+                                                                            ", -q.x"
+                                                                        )
                                                                     elif b == 2:
-                                                                        output += ", q.y"
+                                                                        output += (
+                                                                            ", q.y"
+                                                                        )
                                                                     elif b == 3:
-                                                                        output += ", -q.y"
+                                                                        output += (
+                                                                            ", -q.y"
+                                                                        )
                                                                     elif b == 4:
-                                                                        output += ", q.z"
+                                                                        output += (
+                                                                            ", q.z"
+                                                                        )
                                                                     elif b == 5:
-                                                                        output += ", -q.z"
+                                                                        output += (
+                                                                            ", -q.z"
+                                                                        )
                                                                     elif b == 6:
-                                                                        output += ", q.w"
+                                                                        output += (
+                                                                            ", q.w"
+                                                                        )
                                                                     elif b == 7:
-                                                                        output += ", -q.w"
+                                                                        output += (
+                                                                            ", -q.w"
+                                                                        )
                                                                     if c == 0:
-                                                                        output += ", q.y"
+                                                                        output += (
+                                                                            ", q.y"
+                                                                        )
                                                                     elif c == 1:
-                                                                        output += ", -q.y"
+                                                                        output += (
+                                                                            ", -q.y"
+                                                                        )
                                                                     elif c == 2:
-                                                                        output += ", q.z"
+                                                                        output += (
+                                                                            ", q.z"
+                                                                        )
                                                                     elif c == 3:
-                                                                        output += ", -q.z"
+                                                                        output += (
+                                                                            ", -q.z"
+                                                                        )
                                                                     elif c == 4:
-                                                                        output += ", q.w"
+                                                                        output += (
+                                                                            ", q.w"
+                                                                        )
                                                                     elif c == 5:
-                                                                        output += ", -q.w"
+                                                                        output += (
+                                                                            ", -q.w"
+                                                                        )
                                                                     elif c == 6:
-                                                                        output += ", q.x"
+                                                                        output += (
+                                                                            ", q.x"
+                                                                        )
                                                                     elif c == 7:
-                                                                        output += ", -q.x"
+                                                                        output += (
+                                                                            ", -q.x"
+                                                                        )
                                                                     if d == 0:
                                                                         output += " q.z"
                                                                     elif d == 1:
-                                                                        output += " -q.z"
+                                                                        output += (
+                                                                            " -q.z"
+                                                                        )
                                                                     elif d == 2:
                                                                         output += " q.w"
                                                                     elif d == 3:
-                                                                        output += " -q.w"
+                                                                        output += (
+                                                                            " -q.w"
+                                                                        )
                                                                     elif d == 4:
                                                                         output += " q.x"
                                                                     elif d == 5:
-                                                                        output += " -q.x"
+                                                                        output += (
+                                                                            " -q.x"
+                                                                        )
                                                                     elif d == 6:
                                                                         output += " q.y"
                                                                     elif d == 7:
-                                                                        output += " -q.y"
+                                                                        output += (
+                                                                            " -q.y"
+                                                                        )
                                                                     done = True
-                                                                    flag_for_auto_quaternion = True
+                                                                    flag_for_auto_quaternion = (
+                                                                        True
+                                                                    )
                                                             quaternion_to_try_index += 1
-                            self.object.pose.bones[pose_bone.name].rotation_quaternion = rotation_quaternion
-                            self.object.pose.bones[pose_bone.name].keyframe_insert(data_path="rotation_quaternion")
+                            self.object.pose.bones[
+                                pose_bone.name
+                            ].rotation_quaternion = rotation_quaternion
+                            self.object.pose.bones[pose_bone.name].keyframe_insert(
+                                data_path="rotation_quaternion"
+                            )
                             # print(bone, "set quaternion to", self.bones[bone]["dynamic_quaternions"][frame_index], "on frame", frame)
                             if self.mrtr_bone_to_pose_bone[bone] in self.twist_bone_map:
-                                if self.twist_bone_map[self.mrtr_bone_to_pose_bone[bone]] in self.pose_bones:
-                                    self.object.pose.bones[self.twist_bone_map[
-                                        self.mrtr_bone_to_pose_bone[bone]]].rotation_quaternion = rotation_quaternion
+                                if (
+                                    self.twist_bone_map[
+                                        self.mrtr_bone_to_pose_bone[bone]
+                                    ]
+                                    in self.pose_bones
+                                ):
                                     self.object.pose.bones[
-                                        self.twist_bone_map[self.mrtr_bone_to_pose_bone[bone]]].keyframe_insert(
-                                        data_path="rotation_quaternion")
+                                        self.twist_bone_map[
+                                            self.mrtr_bone_to_pose_bone[bone]
+                                        ]
+                                    ].rotation_quaternion = rotation_quaternion
+                                    self.object.pose.bones[
+                                        self.twist_bone_map[
+                                            self.mrtr_bone_to_pose_bone[bone]
+                                        ]
+                                    ].keyframe_insert(data_path="rotation_quaternion")
                             # print(self.twist_bone_map[self.mrtr_bone_to_pose_bone[bone]], "set quaternion to", self.bones[bone]["dynamic_quaternions"][frame_index], "on frame", frame)
         print("Trying quaternion: (", output, ")")
         for pose_bone in self.object.pose.bones:
@@ -410,7 +573,7 @@ class Animation:
             pass
 
     def apply_animation(self):
-        '''bpy.ops.object.mode_set(mode='POSE')
+        """bpy.ops.object.mode_set(mode='POSE')
         bpy.context.scene.render.fps = self.mjba.mjba.animation.fps
         bpy.context.scene.frame_end = self.mjba.mjba.animation.frame_count_1
         bone_list = self.mjba.get_used_bone_list()
@@ -440,11 +603,11 @@ class Animation:
                     if self.bones[bone.name].rotation_quaternion != None:
                         object.pose.bones[bone.name].rotation_quaternion = self.bones[bone.name].rotation_quaternion
                         object.pose.bones[bone.name].keyframe_insert(data_path = "rotation_quaternion")
-                    print(object.pose.bones[bone.name].rotation_quaternion)'''
+                    print(object.pose.bones[bone.name].rotation_quaternion)"""
 
     def export_animation(self, object):
         pass
-        '''bpy.ops.object.mode_set(mode='POSE')
+        """bpy.ops.object.mode_set(mode='POSE')
         self.object = object
         self.bones = {}		
         for fcurve in self.object.animation_data.action.fcurves:
@@ -466,10 +629,10 @@ class Animation:
             bpy.context.scene.frame_set(frame)
             for bone in object.pose.bones:
                 if bone in self.bones:
-                    self.bones[bone].set_matrix(frame, bone.matrix)'''
+                    self.bones[bone].set_matrix(frame, bone.matrix)"""
 
     def clear_object_animation(self):
-        bpy.ops.object.mode_set(mode='POSE')
+        bpy.ops.object.mode_set(mode="POSE")
         if self.object.animation_data == None:
             self.object.animation_data_create()
         elif self.object.animation_data.action != None:
@@ -480,7 +643,7 @@ class Animation:
             bpy.context.scene.frame_current = 1
 
     def load_bones(self):
-        bpy.ops.object.mode_set(mode='POSE')
+        bpy.ops.object.mode_set(mode="POSE")
         self.mrtr_bone_to_pose_bone = {}
         self.pose_bone_to_mrtr_bone = {}
         self.pose_bones = []
@@ -494,7 +657,9 @@ class Animation:
             self.pose_bones.append(pose_bone.name)
         self.mrtr_index_to_mjba_index = {}
         for used_bone_index in self.mjba.mrtr_bone_map.used_bone_indices:
-            self.mrtr_index_to_mjba_index[used_bone_index] = self.mjba.mrtr_bone_map.mrtr_bone_indices[used_bone_index]
+            self.mrtr_index_to_mjba_index[
+                used_bone_index
+            ] = self.mjba.mrtr_bone_map.mrtr_bone_indices[used_bone_index]
         self.bones = {}
         # print(self.mrtr_index_to_mjba_index)
         # print(self.mrtr_bone_to_pose_bone)
@@ -513,50 +678,129 @@ class Animation:
             self.bones[bone]["dynamic_scales"] = None
             self.bones[bone]["bind_poses_quaternions"] = None
             self.bones[bone]["bind_poses_transforms"] = None
-            self.bones[bone]["index"] = self.mjba.mrtr_bone_map.mrtr_bone_indices[used_bone_index]
-            if self.mjba.animation.bones_with_static_quaternions["bones"][self.bones[bone]["index"]]:
+            self.bones[bone]["index"] = self.mjba.mrtr_bone_map.mrtr_bone_indices[
+                used_bone_index
+            ]
+            if self.mjba.animation.bones_with_static_quaternions["bones"][
+                self.bones[bone]["index"]
+            ]:
                 self.bones[bone]["static_quaternion"] = [
-                    self.mjba.animation.static_bone_quaternions[static_quaternion_index * 4],
-                    self.mjba.animation.static_bone_quaternions[static_quaternion_index * 4 + 1],
-                    self.mjba.animation.static_bone_quaternions[static_quaternion_index * 4 + 2],
-                    self.mjba.animation.static_bone_quaternions[static_quaternion_index * 4 + 3]]
+                    self.mjba.animation.static_bone_quaternions[
+                        static_quaternion_index * 4
+                    ],
+                    self.mjba.animation.static_bone_quaternions[
+                        static_quaternion_index * 4 + 1
+                    ],
+                    self.mjba.animation.static_bone_quaternions[
+                        static_quaternion_index * 4 + 2
+                    ],
+                    self.mjba.animation.static_bone_quaternions[
+                        static_quaternion_index * 4 + 3
+                    ],
+                ]
                 static_quaternion_index += 1
-            if self.mjba.animation.bones_with_static_transforms["bones"][self.bones[bone]["index"]]:
+            if self.mjba.animation.bones_with_static_transforms["bones"][
+                self.bones[bone]["index"]
+            ]:
                 self.bones[bone]["static_transform"] = [
-                    self.mjba.animation.static_bone_transforms[static_transform_index * 4],
-                    self.mjba.animation.static_bone_transforms[static_transform_index * 4 + 1],
-                    self.mjba.animation.static_bone_transforms[static_transform_index * 4 + 2]]
-                self.bones[bone]["static_sccale"] = self.mjba.animation.static_bone_transforms[
-                    static_transform_index * 4 + 3]
-                self.bones[bone]["static_transform"][0] *= self.mjba.animation.transform_scale[0]
-                self.bones[bone]["static_transform"][1] *= self.mjba.animation.transform_scale[1]
-                self.bones[bone]["static_transform"][2] *= self.mjba.animation.transform_scale[2]
+                    self.mjba.animation.static_bone_transforms[
+                        static_transform_index * 4
+                    ],
+                    self.mjba.animation.static_bone_transforms[
+                        static_transform_index * 4 + 1
+                    ],
+                    self.mjba.animation.static_bone_transforms[
+                        static_transform_index * 4 + 2
+                    ],
+                ]
+                self.bones[bone][
+                    "static_sccale"
+                ] = self.mjba.animation.static_bone_transforms[
+                    static_transform_index * 4 + 3
+                ]
+                self.bones[bone]["static_transform"][
+                    0
+                ] *= self.mjba.animation.transform_scale[0]
+                self.bones[bone]["static_transform"][
+                    1
+                ] *= self.mjba.animation.transform_scale[1]
+                self.bones[bone]["static_transform"][
+                    2
+                ] *= self.mjba.animation.transform_scale[2]
                 static_transform_index += 1
-            if self.mjba.animation.bones_with_static_bind_poses["bones"][self.bones[bone]["index"]]:
+            if self.mjba.animation.bones_with_static_bind_poses["bones"][
+                self.bones[bone]["index"]
+            ]:
                 self.bones[bone]["bind_poses_quaternions"] = [
-                    self.mjba.animation.bone_bind_poses_quaternions[static_bind_poses_index * 4],
-                    self.mjba.animation.bone_bind_poses_quaternions[static_bind_poses_index * 4 + 1],
-                    self.mjba.animation.bone_bind_poses_quaternions[static_bind_poses_index * 4 + 2],
-                    self.mjba.animation.bone_bind_poses_quaternions[static_bind_poses_index * 4 + 3],
-                    self.mjba.animation.bone_bind_poses_quaternions[static_bind_poses_index * 4 + 4],
-                    self.mjba.animation.bone_bind_poses_quaternions[static_bind_poses_index * 4 + 5],
-                    self.mjba.animation.bone_bind_poses_quaternions[static_bind_poses_index * 4 + 6],
-                    self.mjba.animation.bone_bind_poses_quaternions[static_bind_poses_index * 4 + 7]]
+                    self.mjba.animation.bone_bind_poses_quaternions[
+                        static_bind_poses_index * 4
+                    ],
+                    self.mjba.animation.bone_bind_poses_quaternions[
+                        static_bind_poses_index * 4 + 1
+                    ],
+                    self.mjba.animation.bone_bind_poses_quaternions[
+                        static_bind_poses_index * 4 + 2
+                    ],
+                    self.mjba.animation.bone_bind_poses_quaternions[
+                        static_bind_poses_index * 4 + 3
+                    ],
+                    self.mjba.animation.bone_bind_poses_quaternions[
+                        static_bind_poses_index * 4 + 4
+                    ],
+                    self.mjba.animation.bone_bind_poses_quaternions[
+                        static_bind_poses_index * 4 + 5
+                    ],
+                    self.mjba.animation.bone_bind_poses_quaternions[
+                        static_bind_poses_index * 4 + 6
+                    ],
+                    self.mjba.animation.bone_bind_poses_quaternions[
+                        static_bind_poses_index * 4 + 7
+                    ],
+                ]
                 self.bones[bone]["bind_poses_transforms"] = [
-                    self.mjba.animation.bone_bind_poses_transforms[static_bind_poses_index * 4],
-                    self.mjba.animation.bone_bind_poses_transforms[static_bind_poses_index * 4 + 1],
-                    self.mjba.animation.bone_bind_poses_transforms[static_bind_poses_index * 4 + 2],
-                    self.mjba.animation.bone_bind_poses_transforms[static_bind_poses_index * 4 + 3],
-                    self.mjba.animation.bone_bind_poses_transforms[static_bind_poses_index * 4 + 4],
-                    self.mjba.animation.bone_bind_poses_transforms[static_bind_poses_index * 4 + 5],
-                    self.mjba.animation.bone_bind_poses_transforms[static_bind_poses_index * 4 + 6],
-                    self.mjba.animation.bone_bind_poses_transforms[static_bind_poses_index * 4 + 7]]
-                self.bones[bone]["bind_poses_transforms"][0] *= self.mjba.animation.transform_scale[0]
-                self.bones[bone]["bind_poses_transforms"][1] *= self.mjba.animation.transform_scale[1]
-                self.bones[bone]["bind_poses_transforms"][2] *= self.mjba.animation.transform_scale[2]
-                self.bones[bone]["bind_poses_transforms"][4] *= self.mjba.animation.transform_scale[0]
-                self.bones[bone]["bind_poses_transforms"][5] *= self.mjba.animation.transform_scale[1]
-                self.bones[bone]["bind_poses_transforms"][6] *= self.mjba.animation.transform_scale[2]
+                    self.mjba.animation.bone_bind_poses_transforms[
+                        static_bind_poses_index * 4
+                    ],
+                    self.mjba.animation.bone_bind_poses_transforms[
+                        static_bind_poses_index * 4 + 1
+                    ],
+                    self.mjba.animation.bone_bind_poses_transforms[
+                        static_bind_poses_index * 4 + 2
+                    ],
+                    self.mjba.animation.bone_bind_poses_transforms[
+                        static_bind_poses_index * 4 + 3
+                    ],
+                    self.mjba.animation.bone_bind_poses_transforms[
+                        static_bind_poses_index * 4 + 4
+                    ],
+                    self.mjba.animation.bone_bind_poses_transforms[
+                        static_bind_poses_index * 4 + 5
+                    ],
+                    self.mjba.animation.bone_bind_poses_transforms[
+                        static_bind_poses_index * 4 + 6
+                    ],
+                    self.mjba.animation.bone_bind_poses_transforms[
+                        static_bind_poses_index * 4 + 7
+                    ],
+                ]
+                self.bones[bone]["bind_poses_transforms"][
+                    0
+                ] *= self.mjba.animation.transform_scale[0]
+                self.bones[bone]["bind_poses_transforms"][
+                    1
+                ] *= self.mjba.animation.transform_scale[1]
+                self.bones[bone]["bind_poses_transforms"][
+                    2
+                ] *= self.mjba.animation.transform_scale[2]
+                self.bones[bone]["bind_poses_transforms"][
+                    4
+                ] *= self.mjba.animation.transform_scale[0]
+                self.bones[bone]["bind_poses_transforms"][
+                    5
+                ] *= self.mjba.animation.transform_scale[1]
+                self.bones[bone]["bind_poses_transforms"][
+                    6
+                ] *= self.mjba.animation.transform_scale[2]
                 static_bind_poses_index += 1
         dynamic_quaternion_index = 0
         dynamic_transform_index = 0
@@ -567,24 +811,48 @@ class Animation:
                     if self.bones[bone]["dynamic_quaternions"] == None:
                         self.bones[bone]["dynamic_quaternions"] = []
                     self.bones[bone]["dynamic_quaternions"].append(
-                        [self.mjba.animation.dynamic_bone_quaternions[dynamic_quaternion_index * 4],
-                         self.mjba.animation.dynamic_bone_quaternions[dynamic_quaternion_index * 4 + 1],
-                         self.mjba.animation.dynamic_bone_quaternions[dynamic_quaternion_index * 4 + 2],
-                         self.mjba.animation.dynamic_bone_quaternions[dynamic_quaternion_index * 4 + 3]])
+                        [
+                            self.mjba.animation.dynamic_bone_quaternions[
+                                dynamic_quaternion_index * 4
+                            ],
+                            self.mjba.animation.dynamic_bone_quaternions[
+                                dynamic_quaternion_index * 4 + 1
+                            ],
+                            self.mjba.animation.dynamic_bone_quaternions[
+                                dynamic_quaternion_index * 4 + 2
+                            ],
+                            self.mjba.animation.dynamic_bone_quaternions[
+                                dynamic_quaternion_index * 4 + 3
+                            ],
+                        ]
+                    )
                     dynamic_quaternion_index += 1
                 if self.bones[bone]["static_transform"] == None:
                     if self.bones[bone]["dynamic_transforms"] == None:
                         self.bones[bone]["dynamic_transforms"] = []
                     if self.bones[bone]["dynamic_scales"] == None:
                         self.bones[bone]["dynamic_scales"] = []
-                    dynamic_transform = [self.mjba.animation.dynamic_bone_transforms[dynamic_transform_index * 4],
-                                         self.mjba.animation.dynamic_bone_transforms[dynamic_transform_index * 4 + 1],
-                                         self.mjba.animation.dynamic_bone_transforms[dynamic_transform_index * 4 + 2]]
+                    dynamic_transform = [
+                        self.mjba.animation.dynamic_bone_transforms[
+                            dynamic_transform_index * 4
+                        ],
+                        self.mjba.animation.dynamic_bone_transforms[
+                            dynamic_transform_index * 4 + 1
+                        ],
+                        self.mjba.animation.dynamic_bone_transforms[
+                            dynamic_transform_index * 4 + 2
+                        ],
+                    ]
                     self.bones[bone]["dynamic_scales"].append(
-                        self.mjba.animation.dynamic_bone_transforms[dynamic_transform_index * 4 + 3])
+                        self.mjba.animation.dynamic_bone_transforms[
+                            dynamic_transform_index * 4 + 3
+                        ]
+                    )
                     dynamic_transform[0] *= self.mjba.animation.transform_scale[0]
                     dynamic_transform[1] *= self.mjba.animation.transform_scale[1]
                     dynamic_transform[2] *= self.mjba.animation.transform_scale[2]
                     self.bones[bone]["dynamic_transforms"].append(dynamic_transform)
                     static_transform_index += 1
+
+
 # print(self.bones)

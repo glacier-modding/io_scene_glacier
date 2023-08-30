@@ -333,7 +333,9 @@ class BoneRig:
             names_entry_index_array.append(br.readUInt())
 
         for name_idx in range(pose_bone_header.pose_count):
-            br.seek(pose_bone_header.names_list_offset + names_entry_index_array[name_idx])
+            br.seek(
+                pose_bone_header.names_list_offset + names_entry_index_array[name_idx]
+            )
             self.names_list.append(br.readCString())
 
         # read face bone indices
@@ -406,7 +408,9 @@ class BoneRig:
 
         header_offset = br.tell()
         br.writeUInt(len(self.bone_definitions))  # number_of_bones
-        br.writeUInt(len(self.bone_definitions) - self.bone_constraints.nr_constraints())  # number_of_animated_bones
+        br.writeUInt(
+            len(self.bone_definitions) - self.bone_constraints.nr_constraints()
+        )  # number_of_animated_bones
         br.writeUInt(bone_definitions_offset)
         br.writeUInt(bind_pose_offset)
         br.writeUInt(bind_pose_inv_global_mats_offset)

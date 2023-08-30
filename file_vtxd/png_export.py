@@ -13,13 +13,12 @@ if len(sys.argv) == 2:
     path = sys.argv[1]
 
     resource = VertexData()
-    br = io_binary.BinaryReader(open(path, 'rb'))
+    br = io_binary.BinaryReader(open(path, "rb"))
     resource.read(br)
     br.close()
 
     img_idx = 0
     for sub_mesh in resource.sub_meshes:
-
         height = int(math.sqrt(int(sub_mesh.num_vertices())))
         width = int(math.sqrt(int(sub_mesh.num_vertices())))
         img = Image.new(mode="RGBA", size=(width, height))
@@ -33,4 +32,4 @@ if len(sys.argv) == 2:
 
 
 else:
-    print('Usage: python(3) bmp_export.py <path to VTXD file>')
+    print("Usage: python(3) bmp_export.py <path to VTXD file>")

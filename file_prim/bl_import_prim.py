@@ -23,11 +23,21 @@ def load_prim(operator, context, collection, filepath, use_rig, rig_filepath):
     if prim.header.bone_rig_resource_index == 0xFFFFFFFF:
         collection.prim_collection_properties.bone_rig_resource_index = -1
     else:
-        collection.prim_collection_properties.bone_rig_resource_index = prim.header.bone_rig_resource_index
-    collection.prim_collection_properties.has_bones = prim.header.property_flags.hasBones()
-    collection.prim_collection_properties.has_frames = prim.header.property_flags.hasFrames()
-    collection.prim_collection_properties.is_weighted = prim.header.property_flags.isWeightedObject()
-    collection.prim_collection_properties.is_linked = prim.header.property_flags.isLinkedObject()
+        collection.prim_collection_properties.bone_rig_resource_index = (
+            prim.header.bone_rig_resource_index
+        )
+    collection.prim_collection_properties.has_bones = (
+        prim.header.property_flags.hasBones()
+    )
+    collection.prim_collection_properties.has_frames = (
+        prim.header.property_flags.hasFrames()
+    )
+    collection.prim_collection_properties.is_weighted = (
+        prim.header.property_flags.isWeightedObject()
+    )
+    collection.prim_collection_properties.is_linked = (
+        prim.header.property_flags.isLinkedObject()
+    )
 
     borg = None
     if use_rig:
@@ -52,7 +62,7 @@ def load_prim(operator, context, collection, filepath, use_rig, rig_filepath):
 
 
 def load_prim_coli(prim, prim_name: str, mesh_index: int):
-    """Testing class for the prim BoxColi """
+    """Testing class for the prim BoxColi"""
     for boxColi in prim.header.object_table[mesh_index].sub_mesh.collision.box_entries:
         x, y, z = boxColi.min
         x1, y1, z1 = boxColi.max
@@ -76,12 +86,16 @@ def load_prim_coli(prim, prim_name: str, mesh_index: int):
         scale_y = (y1 - y) / 2
         scale_z = (z1 - z) / 2
 
-        bpy.ops.mesh.primitive_cube_add(scale=(scale_x, scale_y, scale_z), calc_uvs=True, align='WORLD',
-                                        location=(box_x, box_y, box_z))
+        bpy.ops.mesh.primitive_cube_add(
+            scale=(scale_x, scale_y, scale_z),
+            calc_uvs=True,
+            align="WORLD",
+            location=(box_x, box_y, box_z),
+        )
         ob = bpy.context.object
         me = ob.data
-        ob.name = (str(prim_name) + "_" + str(mesh_index) + "_Coli")
-        me.name = 'CUBEMESH'
+        ob.name = str(prim_name) + "_" + str(mesh_index) + "_Coli"
+        me.name = "CUBEMESH"
 
 
 def load_prim_mesh(prim, borg, prim_name: str, mesh_index: int):
@@ -107,8 +121,14 @@ def load_prim_mesh(prim, borg, prim_name: str, mesh_index: int):
 
     sub_mesh = prim.header.object_table[mesh_index].sub_mesh
 
-    vert_joints = [[[0] * 4 for _ in range(len(sub_mesh.vertexBuffer.vertices))] for _ in range(num_joint_sets)]
-    vert_weights = [[[0] * 4 for _ in range(len(sub_mesh.vertexBuffer.vertices))] for _ in range(num_joint_sets)]
+    vert_joints = [
+        [[0] * 4 for _ in range(len(sub_mesh.vertexBuffer.vertices))]
+        for _ in range(num_joint_sets)
+    ]
+    vert_weights = [
+        [[0] * 4 for _ in range(len(sub_mesh.vertexBuffer.vertices))]
+        for _ in range(num_joint_sets)
+    ]
 
     loop_vidxs.extend(sub_mesh.indices)
 
@@ -116,38 +136,44 @@ def load_prim_mesh(prim, borg, prim_name: str, mesh_index: int):
         vert_locs.extend([vert.position[0], vert.position[1], vert.position[2]])
 
         for j in range(num_joint_sets):
-            vert_joints[j][i] = (vert.joint[j])
-            vert_weights[j][i] = (vert.weight[j])
+            vert_joints[j][i] = vert.joint[j]
+            vert_weights[j][i] = vert.weight[j]
 
     for index in sub_mesh.indices:
         vert = sub_mesh.vertexBuffer.vertices[index]
-        loop_cols.extend([vert.color[0] / 255, vert.color[1] / 255, vert.color[2] / 255, vert.color[3] / 255])
+        loop_cols.extend(
+            [
+                vert.color[0] / 255,
+                vert.color[1] / 255,
+                vert.color[2] / 255,
+                vert.color[3] / 255,
+            ]
+        )
         for uv_i in range(sub_mesh.num_uvchannels):
             loop_uvs[uv_i].extend([vert.uv[uv_i][0], 1 - vert.uv[uv_i][1]])
 
     mesh.vertices.add(len(vert_locs) // 3)
-    mesh.vertices.foreach_set('co', vert_locs)
+    mesh.vertices.foreach_set("co", vert_locs)
 
     mesh.loops.add(len(loop_vidxs))
-    mesh.loops.foreach_set('vertex_index', loop_vidxs)
+    mesh.loops.foreach_set("vertex_index", loop_vidxs)
 
     num_faces = len(sub_mesh.indices) // 3
     mesh.polygons.add(num_faces)
 
     loop_starts = np.arange(0, 3 * num_faces, step=3)
     loop_totals = np.full(num_faces, 3)
-    mesh.polygons.foreach_set('loop_start', loop_starts)
-    mesh.polygons.foreach_set('loop_total', loop_totals)
+    mesh.polygons.foreach_set("loop_start", loop_starts)
+    mesh.polygons.foreach_set("loop_total", loop_totals)
 
     for uv_i in range(sub_mesh.num_uvchannels):
-        name = 'UVMap' if uv_i == 0 else 'UVMap.%03d' % uv_i
+        name = "UVMap" if uv_i == 0 else "UVMap.%03d" % uv_i
         layer = mesh.uv_layers.new(name=name)
-        layer.data.foreach_set('uv', loop_uvs[uv_i])
+        layer.data.foreach_set("uv", loop_uvs[uv_i])
 
     # Skinning
-    ob = bpy.data.objects.new('temp_obj', mesh)
+    ob = bpy.data.objects.new("temp_obj", mesh)
     if num_joint_sets and use_rig:
-
         for bone in borg.bone_definitions:
             ob.vertex_groups.new(name=bone.name.decode("utf-8"))
 
@@ -159,14 +185,18 @@ def load_prim_mesh(prim, borg, prim_name: str, mesh_index: int):
             for vi in range(len(vert_locs) // 3):
                 w0, w1, w2, w3 = ws[vi]
                 j0, j1, j2, j3 = js[vi]
-                if w0 != 0: vgs[j0].add((vi,), w0, 'REPLACE')
-                if w1 != 0: vgs[j1].add((vi,), w1, 'REPLACE')
-                if w2 != 0: vgs[j2].add((vi,), w2, 'REPLACE')
-                if w3 != 0: vgs[j3].add((vi,), w3, 'REPLACE')
+                if w0 != 0:
+                    vgs[j0].add((vi,), w0, "REPLACE")
+                if w1 != 0:
+                    vgs[j1].add((vi,), w1, "REPLACE")
+                if w2 != 0:
+                    vgs[j2].add((vi,), w2, "REPLACE")
+                if w3 != 0:
+                    vgs[j3].add((vi,), w3, "REPLACE")
     bpy.data.objects.remove(ob)
 
-    layer = mesh.vertex_colors.new(name='Col')
-    mesh.color_attributes[layer.name].data.foreach_set('color', loop_cols)
+    layer = mesh.vertex_colors.new(name="Col")
+    mesh.color_attributes[layer.name].data.foreach_set("color", loop_cols)
 
     mesh.validate()
     mesh.update()
@@ -185,18 +215,22 @@ def load_prim_mesh(prim, borg, prim_name: str, mesh_index: int):
     mesh.prim_properties.prim_type = str(prim_mesh_obj.prims.prim_header.type)
     mesh.prim_properties.prim_sub_type = str(prim_mesh_obj.sub_type)
 
-    mesh.prim_properties.axis_lock = [prim_mesh_obj.properties.isXaxisLocked(),
-                                      prim_mesh_obj.properties.isYaxisLocked(),
-                                      prim_mesh_obj.properties.isZaxisLocked()]
+    mesh.prim_properties.axis_lock = [
+        prim_mesh_obj.properties.isXaxisLocked(),
+        prim_mesh_obj.properties.isYaxisLocked(),
+        prim_mesh_obj.properties.isZaxisLocked(),
+    ]
     mesh.prim_properties.no_physics = prim_mesh_obj.properties.hasNoPhysicsProp()
 
     mesh.prim_properties.variant_id = prim_sub_mesh_obj.variant_id
     mesh.prim_properties.z_bias = prim_mesh_obj.zbias
     mesh.prim_properties.z_offset = prim_mesh_obj.zoffset
     mesh.prim_properties.use_mesh_color = prim_sub_mesh_obj.properties.useColor1()
-    mesh.prim_properties.mesh_color = [prim_sub_mesh_obj.color1[0] / 255,
-                                       prim_sub_mesh_obj.color1[1] / 255,
-                                       prim_sub_mesh_obj.color1[2] / 255,
-                                       prim_sub_mesh_obj.color1[3] / 255]
+    mesh.prim_properties.mesh_color = [
+        prim_sub_mesh_obj.color1[0] / 255,
+        prim_sub_mesh_obj.color1[1] / 255,
+        prim_sub_mesh_obj.color1[2] / 255,
+        prim_sub_mesh_obj.color1[3] / 255,
+    ]
 
     return mesh

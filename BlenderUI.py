@@ -1,7 +1,7 @@
 import bpy
 
 
-def MessageBox(message="", title="Glacier Engine", icon='INFO'):
+def MessageBox(message="", title="Glacier Engine", icon="INFO"):
     def draw(self, context):
         self.layout.label(text=message)
 

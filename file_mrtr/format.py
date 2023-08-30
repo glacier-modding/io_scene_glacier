@@ -22,7 +22,9 @@ class MorphemeRig:
         bone_quaternions_offset = br.readUInt64()
         bone_positions_offset = br.readUInt64()
 
-        spu_memory_requirements = br.readUInt()  # is always the same as the quats offset
+        spu_memory_requirements = (
+            br.readUInt()
+        )  # is always the same as the quats offset
         br.seekBy(0x4)
 
         global_id_to_rig_id_offset = br.readUInt64()  # always 0
@@ -76,7 +78,9 @@ class MorphemeRig:
         br.writeUInt64(bone_name_map_offset)  # bone_name_map_offset
         br.writeUInt64(bone_quaternions_offset)  # bone_quaternions_offset
         br.writeUInt64(bone_positions_offset)  # bone_positions_offset
-        br.writeUInt(bone_name_map_offset)  # spu_memory_requirements = bone_quaternions_offset
+        br.writeUInt(
+            bone_name_map_offset
+        )  # spu_memory_requirements = bone_quaternions_offset
 
 
 class Hierarchy:
@@ -87,7 +91,9 @@ class Hierarchy:
         num_entries = br.readUInt()
         br.seekBy(0x4)
         bone_parents_offset = br.readUInt64()
-        br.seekBy(bone_parents_offset - 0x10)  # the offset is relative to the offset of the num_entries
+        br.seekBy(
+            bone_parents_offset - 0x10
+        )  # the offset is relative to the offset of the num_entries
         self.bone_parents = br.readIntVec(num_entries)
 
     def write(self, br):
@@ -144,7 +150,9 @@ class StringTable:
         br.seek(offsets_offset)
         offsets = br.readUIntVec(num_entries)
 
-        br.seek(data_offset)  # the intended way of reading this is with the offsets array, but this is faster
+        br.seek(
+            data_offset
+        )  # the intended way of reading this is with the offsets array, but this is faster
         for i in range(num_entries):
             self.data.append(br.readCString())
 
