@@ -1,0 +1,259 @@
+{
+    "$schema": "https://glaciermodding.org/schemas/material.schema.json",
+    "MATI": "",
+    "MATT": "",
+    "MATB": "",
+    "MATE": "[[assembly:/_pro/environment/materialclasses/basicmaterial.materialclass].fx](dx11).pc_mate",
+    "ERES": "",
+    "TYPE": "Standard",
+    "Material": {
+        "Instance": [
+            {
+                "Name": "",
+                "Tags": "",
+                "Binder": [
+                    {
+                        "Render State": [
+                            {
+                                "Name": "RenderState",
+                                "Enabled": 1,
+                                "Blend Enabled": 0,
+                                "Decal Blend Diffuse": 0,
+                                "Decal Blend Normal": 0,
+                                "Decal Blend Specular": 0,
+                                "Decal Blend Roughness": 0,
+                                "Decal Blend Emission": 0,
+                                "Alpha Test Enabled": 0,
+                                "Alpha Reference": 255,
+                                "Fog Enabled": 1,
+                                "Culling Mode": "DontCare",
+                                "Z Bias": 0,
+                                "Z Offset": 0.0,
+                                "Subsurface Red": 0.0,
+                                "Subsurface Green": 0.0,
+                                "Subsurface Blue": 0.0,
+                                "Subsurface Value": 0.0
+                            }
+                        ],
+                        "Texture": [
+                            {
+                                "Name": "mapTexture2D_01",
+                                "FriendlyName": "mapDiffuse",
+                                "Enabled": 1,
+                                "Texture Id": "diffuse",
+                                "Tiling U": "",
+                                "Tiling V": "",
+                                "Type": "AsColorMap"
+                            },
+                            {
+                                "Name": "mapTexture2DNormal_01",
+                                "FriendlyName": "mapNormal",
+                                "Enabled": 1,
+                                "Texture Id": "normal",
+                                "Tiling U": "",
+                                "Tiling V": "",
+                                "Type": "AsNormalMap"
+                            },
+                            {
+                                "Name": "mapTexture2D_03",
+                                "FriendlyName": "mapSpecular",
+                                "Enabled": 1,
+                                "Texture Id": "specular",
+                                "Tiling U": "",
+                                "Tiling V": "",
+                                "Type": "AsColorMap"
+                            },
+                            {
+                                "Name": "mapTexture2D_04",
+                                "FriendlyName": "mapEmissive",
+                                "Enabled": 1,
+                                "Texture Id": "[assembly:/_pro/environment/textures/constants/color_black.texture?/diffuse_a.tex](ascolormap).pc_tex",
+                                "Tiling U": "",
+                                "Tiling V": "",
+                                "Type": "AsColorMap"
+                            }
+                        ],
+                        "Float Value": [
+                            {
+                                "Name": "gm_mTransform2D_01",
+                                "Enabled": 1,
+                                "Value": [
+                                    1.0,
+                                    -0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    1.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            {
+                                "Name": "ConstantVector1D_01_Value",
+                                "FriendlyName": "Diff_Albedo_Value",
+                                "Enabled": 1,
+                                "Value": 0.5
+                            },
+                            {
+                                "Name": "ShaderLOD_Distance",
+                                "FriendlyName": "ShaderLOD_Distance_Value",
+                                "Enabled": 1,
+                                "Value": 40.0
+                            },
+                            {
+                                "Name": "ShaderLOD_FadeLength",
+                                "FriendlyName": "ShaderLOD_FadeLength_Value",
+                                "Enabled": 1,
+                                "Value": 5.0
+                            },
+                            {
+                                "Name": "ConstantVector1D_06_Value",
+                                "FriendlyName": "Norm_Bumpscale_Value",
+                                "Enabled": 1,
+                                "Value": 1.0
+                            },
+                            {
+                                "Name": "Specular_Multiplier_Value",
+                                "FriendlyName": "Specular_Multiplier_Value",
+                                "Enabled": 1,
+                                "Value": 0.0
+                            },
+                            {
+                                "Name": "ConstantVector1D_04_Value",
+                                "FriendlyName": "Glossiness_Min_Value",
+                                "Enabled": 1,
+                                "Value": 0.0
+                            },
+                            {
+                                "Name": "ConstantVector1D_05_Value",
+                                "FriendlyName": "Glossiness_Max_Value",
+                                "Enabled": 1,
+                                "Value": 1.0
+                            },
+                            {
+                                "Name": "ShaderLOD_Gloss",
+                                "FriendlyName": "LOD_Gloss_Value",
+                                "Enabled": 1,
+                                "Value": 0.0
+                            },
+                            {
+                                "Name": "ConstantVector1D_07_Value",
+                                "FriendlyName": "Emis_Intensity_Value",
+                                "Enabled": 1,
+                                "Value": 0.0
+                            }
+                        ],
+                        "Color": [
+                            {
+                                "Name": "ConstantColorRGB_02_Value",
+                                "FriendlyName": "Diff_ColorModulate_Value",
+                                "Enabled": 1,
+                                "Value": [
+                                    1.0,
+                                    1.0,
+                                    1.0
+                                ]
+                            },
+                            {
+                                "Name": "ShaderLOD_Speccolor",
+                                "FriendlyName": "LOD_SpecColor_Value",
+                                "Enabled": 1,
+                                "Value": [
+                                    0.21960780024528503,
+                                    0.21960780024528503,
+                                    0.21960780024528503
+                                ]
+                            },
+                            {
+                                "Name": "ConstantColorRGB_01_Value",
+                                "FriendlyName": "Emis_Color_Value",
+                                "Enabled": 1,
+                                "Value": [
+                                    1.0,
+                                    1.0,
+                                    1.0
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "Overrides": {
+        "Texture": {
+            "Texture2D_01": "diffuse",
+            "Texture2DNormal_01": "normal",
+            "Texture2D_03": "specular",
+            "Texture2D_04": "[assembly:/_pro/environment/textures/constants/color_black.texture?/diffuse_a.tex](ascolormap).pc_tex"
+        },
+        "ConstantVector1D_01_Value": 0.5,
+        "ShaderLOD_Distance": 40.0,
+        "ShaderLOD_FadeLength": 5.0,
+        "ConstantVector1D_06_Value": 1.0,
+        "Specular_Multiplier_Value": 0.0,
+        "ConstantVector1D_04_Value": 0.0,
+        "ConstantVector1D_05_Value": 1.0,
+        "ShaderLOD_Gloss": 0.0,
+        "ConstantVector1D_07_Value": 0.0,
+        "Color": {
+            "ConstantColorRGB_02_Value": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "ShaderLOD_Speccolor": [
+                0.21960780024528503,
+                0.21960780024528503,
+                0.21960780024528503
+            ],
+            "ConstantColorRGB_01_Value": [
+                1.0,
+                1.0,
+                1.0
+            ]
+        }
+    },
+    "Flags": {
+        "Class": {
+            "REFLECTION2D": false,
+            "REFRACTION2D": false,
+            "LIGHTING": true,
+            "EMISSIVE": true,
+            "DISCARD": false,
+            "LM_SKIN": false,
+            "PRIMCLASS_STANDARD": true,
+            "PRIMCLASS_LINKED": false,
+            "PRIMCLASS_WEIGHTED": false,
+            "DOFOVERRIDE": false,
+            "USES_DEFAULT_VS": true,
+            "USES_SPRITE_SA_VS": false,
+            "USES_SPRITE_AO_VS": false,
+            "ALPHA": true,
+            "USES_SIMPLE_SHADER": true,
+            "DISABLE_INSTANCING": false,
+            "LM_HAIR": false,
+            "UNKNOWN_1": false,
+            "UNKNOWN_2": false,
+            "UNKNOWN_3": false,
+            "UNKNOWN_4": false,
+            "UNKNOWN_5": false
+        },
+        "Instance": {
+            "OPAQUE_EMISSIVE": false,
+            "TRANS_EMISSIVE": false,
+            "TRANSADD_EMISSIVE": false,
+            "OPAQUE_LIT": true,
+            "TRANS_LIT": false,
+            "DECAL": false,
+            "REFRACTIVE": false,
+            "LM_SKIN": false,
+            "LM_HAIR": false,
+            "FORCE_EMISSIVE": false,
+            "DISABLE_SHADER_LOD": true,
+            "DISCARD": false,
+            "DECAL_EMISSIVE": false,
+            "WATER_CLIPPING": false
+        }
+    }
+}

@@ -81,7 +81,6 @@ class Physics:
         self.lib.SetCollisionSettings.argtypes = (ctypes.POINTER(PhysicsCollisionSettings),)
         self.lib.SetCollisionSettings.restype = ctypes.c_int
         self.lib.NewPhysics()
-        print(os.environ['PATH'])
 
     def write(self, filepath):
         self.lib.Write(filepath)

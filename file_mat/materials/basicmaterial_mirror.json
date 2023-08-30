@@ -1,0 +1,303 @@
+{
+    "$schema": "https://glaciermodding.org/schemas/material.schema.json",
+    "MATI": "",
+    "MATT": "",
+    "MATB": "",
+    "MATE": "[[assembly:/_pro/environment/materialclasses/basicmaterial_mirror.materialclass].fx](dx11).pc_mate",
+    "ERES": "",
+    "TYPE": "Standard",
+    "Material": {
+        "Instance": [
+            {
+                "Name": "",
+                "Tags": "",
+                "Binder": [
+                    {
+                        "Render State": [
+                            {
+                                "Name": "RenderState",
+                                "Enabled": 1,
+                                "Blend Mode": "OPAQUE",
+                                "Opacity": 1.0,
+                                "Blend Enabled": 0,
+                                "Decal Blend Diffuse": 0,
+                                "Decal Blend Normal": 0,
+                                "Decal Blend Specular": 0,
+                                "Decal Blend Roughness": 0,
+                                "Decal Blend Emission": 0,
+                                "Alpha Test Enabled": 0,
+                                "Alpha Reference": 255,
+                                "Fog Enabled": 1,
+                                "Culling Mode": "DontCare",
+                                "Z Bias": 0,
+                                "Z Offset": 0.0,
+                                "Subsurface Red": 0.0,
+                                "Subsurface Green": 0.0,
+                                "Subsurface Blue": 0.0,
+                                "Subsurface Value": 0.0
+                            }
+                        ],
+                        "Float Value": [
+                            {
+                                "Name": "gm_mTransform2D_01",
+                                "Enabled": 1,
+                                "Value": [
+                                    1.0,
+                                    -0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    1.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            {
+                                "Name": "ConstantVector1D_06_Value",
+                                "FriendlyName": "Norm_Bumpscale_Value",
+                                "Enabled": 1,
+                                "Value": 0.0024999999441206455
+                            },
+                            {
+                                "Name": "ConstantVector1D_02_Value",
+                                "FriendlyName": "Detail_Bumpscale_Value",
+                                "Enabled": 1,
+                                "Value": 0.0
+                            },
+                            {
+                                "Name": "gm_mTransform2D_02",
+                                "Enabled": 1,
+                                "Value": [
+                                    1.0,
+                                    -0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    1.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            {
+                                "Name": "ConstantVector1D_10_Value",
+                                "FriendlyName": "Broken_Normal_Scale_Value",
+                                "Enabled": 1,
+                                "Value": 0.0
+                            },
+                            {
+                                "Name": "gm_mTransform2D_03",
+                                "Enabled": 1,
+                                "Value": [
+                                    1.0,
+                                    -0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    1.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            {
+                                "Name": "ConstantVector1D_07_Value",
+                                "FriendlyName": "BrokenNormalsAddTiling_Value",
+                                "Enabled": 1,
+                                "Value": 0.0
+                            },
+                            {
+                                "Name": "ConstantVector2D_02_Value",
+                                "FriendlyName": "BrokenNormalsOffset_Value",
+                                "Enabled": 1,
+                                "Value": [
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            {
+                                "Name": "ConstantVector1D_01_Value",
+                                "FriendlyName": "Diff_Albedo_Value",
+                                "Enabled": 1,
+                                "Value": 0.5
+                            },
+                            {
+                                "Name": "ConstantVector1D_03_Value",
+                                "FriendlyName": "Detail_Roughscale_Value",
+                                "Enabled": 1,
+                                "Value": 0.0
+                            },
+                            {
+                                "Name": "ConstantVector1D_04_Value",
+                                "FriendlyName": "Glossiness_Min_Value",
+                                "Enabled": 1,
+                                "Value": 0.800000011920929
+                            },
+                            {
+                                "Name": "ConstantVector1D_05_Value",
+                                "FriendlyName": "Glossiness_Max_Value",
+                                "Enabled": 1,
+                                "Value": 1.0
+                            },
+                            {
+                                "Name": "ConstantVector1D_08_Value",
+                                "FriendlyName": "Mirror_Reflectance_Scale_Value",
+                                "Enabled": 1,
+                                "Value": 0.8799999952316284
+                            },
+                            {
+                                "Name": "DisableDistanceFade_Value",
+                                "FriendlyName": "DisableDistanceFade_Value",
+                                "Enabled": 1,
+                                "Value": 0.0
+                            },
+                            {
+                                "Name": "Specular_Multiplier_Value",
+                                "FriendlyName": "Specular_Multiplier_Value",
+                                "Enabled": 1,
+                                "Value": 1.0
+                            },
+                            {
+                                "Name": "MirrorBlendMethod_Value",
+                                "FriendlyName": "MirrorBlendMethod_Value",
+                                "Enabled": 1,
+                                "Value": 0.0
+                            }
+                        ],
+                        "Texture": [
+                            {
+                                "Name": "mapTexture2DNormal_01",
+                                "FriendlyName": "mapNormal",
+                                "Enabled": 1,
+                                "Texture Id": "normal",
+                                "Tiling U": "",
+                                "Tiling V": "",
+                                "Type": "AsNormalMap"
+                            },
+                            {
+                                "Name": "mapTexture2DCompoundNormal_01",
+                                "FriendlyName": "mapDetail",
+                                "Enabled": 1,
+                                "Texture Id": "[assembly:/_pro/environment/textures/detailmaps/default.texture?/detail_a.tex](ascompoundnormal).pc_tex",
+                                "Tiling U": "",
+                                "Tiling V": "",
+                                "Type": "AsCompoundNormal"
+                            },
+                            {
+                                "Name": "mapTexture2DNormal_02",
+                                "FriendlyName": "mapBroken_Normal",
+                                "Enabled": 1,
+                                "Texture Id": "[assembly:/_pro/effects/textures/detail/fx_detail_broken_glass_01.texture?/normal_c.tex](asnormalmap).pc_tex",
+                                "Tiling U": "",
+                                "Tiling V": "",
+                                "Type": "AsNormalMap"
+                            },
+                            {
+                                "Name": "mapTexture2D_01",
+                                "FriendlyName": "mapDiffuse___Mirror_Alpha_BC7",
+                                "Enabled": 1,
+                                "Texture Id": "diffuse",
+                                "Tiling U": "",
+                                "Tiling V": "",
+                                "Type": "AsColorMap"
+                            },
+                            {
+                                "Name": "mapTexture2D_03",
+                                "FriendlyName": "mapSpecular",
+                                "Enabled": 1,
+                                "Texture Id": "specular",
+                                "Tiling U": "",
+                                "Tiling V": "",
+                                "Type": "AsColorMap"
+                            }
+                        ],
+                        "Color": [
+                            {
+                                "Name": "ConstantColorRGB_02_Value",
+                                "FriendlyName": "Diff_ColorModulate_Value",
+                                "Enabled": 1,
+                                "Value": [
+                                    1.0,
+                                    1.0,
+                                    1.0
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "Overrides": {
+        "Texture": {
+            "Texture2DNormal_01": "normal",
+            "Texture2DCompoundNormal_01": "[assembly:/_pro/environment/textures/detailmaps/default.texture?/detail_a.tex](ascompoundnormal).pc_tex",
+            "Texture2DNormal_02": "[assembly:/_pro/effects/textures/detail/fx_detail_broken_glass_01.texture?/normal_c.tex](asnormalmap).pc_tex",
+            "Texture2D_01": "diffuse",
+            "Texture2D_03": "specular"
+        },
+        "ConstantVector1D_06_Value": 0.0024999999441206455,
+        "ConstantVector1D_02_Value": 0.0,
+        "ConstantVector1D_10_Value": 0.0,
+        "ConstantVector1D_07_Value": 0.0,
+        "ConstantVector2D_02_Value": [
+            0.0,
+            0.0
+        ],
+        "ConstantVector1D_01_Value": 0.5,
+        "ConstantVector1D_03_Value": 0.0,
+        "ConstantVector1D_04_Value": 0.800000011920929,
+        "ConstantVector1D_05_Value": 1.0,
+        "ConstantVector1D_08_Value": 0.8799999952316284,
+        "DisableDistanceFade_Value": 0.0,
+        "Specular_Multiplier_Value": 1.0,
+        "MirrorBlendMethod_Value": 0.0,
+        "Color": {
+            "ConstantColorRGB_02_Value": [
+                1.0,
+                1.0,
+                1.0
+            ]
+        }
+    },
+    "Flags": {
+        "Class": {
+            "REFLECTION2D": true,
+            "REFRACTION2D": false,
+            "LIGHTING": true,
+            "EMISSIVE": true,
+            "DISCARD": false,
+            "LM_SKIN": false,
+            "PRIMCLASS_STANDARD": true,
+            "PRIMCLASS_LINKED": false,
+            "PRIMCLASS_WEIGHTED": false,
+            "DOFOVERRIDE": false,
+            "USES_DEFAULT_VS": true,
+            "USES_SPRITE_SA_VS": false,
+            "USES_SPRITE_AO_VS": false,
+            "ALPHA": false,
+            "USES_SIMPLE_SHADER": true,
+            "DISABLE_INSTANCING": true,
+            "LM_HAIR": false,
+            "UNKNOWN_1": true,
+            "UNKNOWN_2": false,
+            "UNKNOWN_3": false,
+            "UNKNOWN_4": false,
+            "UNKNOWN_5": false
+        },
+        "Instance": {
+            "OPAQUE_EMISSIVE": true,
+            "TRANS_EMISSIVE": false,
+            "TRANSADD_EMISSIVE": false,
+            "OPAQUE_LIT": true,
+            "TRANS_LIT": false,
+            "DECAL": false,
+            "REFRACTIVE": false,
+            "LM_SKIN": false,
+            "LM_HAIR": false,
+            "FORCE_EMISSIVE": false,
+            "DISABLE_SHADER_LOD": true,
+            "DISCARD": false,
+            "DECAL_EMISSIVE": false,
+            "WATER_CLIPPING": false
+        }
+    }
+}

@@ -4,7 +4,9 @@ import os
 from . import bl_utils_prim
 from .. import BlenderUI
 from ..file_aloc import format as aloc_format
+from ..file_mat import materials as mat_materials
 import mathutils
+import threading
 
 from bpy_extras.io_utils import (
     ImportHelper,
@@ -18,15 +20,17 @@ from bpy.props import (StringProperty,
                        PointerProperty,
                        IntProperty,
                        EnumProperty,
+                       FloatProperty,
                        FloatVectorProperty,
                        IntVectorProperty
                        )
 
-from bpy.types import (Panel,
+from bpy.types import (Context, Panel,
                        Operator,
                        PropertyGroup,
                        )
 
+materials = mat_materials.Materials()
 
 class ImportPRIM(bpy.types.Operator, ImportHelper):
     """Load a PRIM file"""
@@ -163,6 +167,36 @@ class ExportPRIM(bpy.types.Operator, ExportHelper):
         default=None,
     )
 
+    export_scene: BoolProperty(
+        name="Export Scene",
+        description="Export PRIMs, Materials, Textures, Geomentities, and Collisions",
+        default=False
+    )
+
+    export_all_collections: BoolProperty(
+        name="Export All Collections",
+        description="Exports all of the 'root' collections in main Scene Collection as PRIMs",
+        default=True
+    )
+
+    collection_folders: BoolProperty(
+        name="Export Collection(s) To Named Folders",
+        description="Exports collection(s) to folders having the same name as the collection",
+        default=True
+    )
+
+    export_materials_textures: BoolProperty(
+        name="Export Materials/Textures",
+        description="Exports materials/textures linked to a given collection and creates the files for use in SMF, including:\n  - material.json\n  - TEXTHASH~TEXDHASH.tga\n  - TEXTHASH~TEXDHASH.tga.meta",
+        default=True
+    )
+
+    export_geomentity: BoolProperty(
+        name="Export Geomentities",
+        description="Exports geomentities for each PRIM and links it to an ALOC if one was generated for the given PRIM",
+        default=True
+    )
+
     hitbox_slider: IntVectorProperty(
         name='',
         description='Configures the hitbox density of the output PRIM.\nLower values equal higher density and vice versa',
@@ -192,6 +226,15 @@ class ExportPRIM(bpy.types.Operator, ExportHelper):
         row.prop(self, "hitbox_slider")
         row = layout.row(align=True)
         row.prop(self, "force_highres_flag")
+        if self.export_scene:
+            row = layout.row(align=True)
+            row.prop(self, "export_all_collections")
+            row = layout.row(align=True)
+            row.prop(self, "collection_folders")
+            row = layout.row(align=True)
+            row.prop(self, "export_materials_textures")
+            row = layout.row(align=True)
+            row.prop(self, "export_geomentity")
 
     def execute(self, context):
         from . import bl_export_prim
@@ -202,7 +245,6 @@ class ExportPRIM(bpy.types.Operator, ExportHelper):
         ))
 
         return bl_export_prim.save_prim(bpy.data.collections[self.export_collection], **keywords)
-
 
 class PrimCollectionProperties(PropertyGroup):
     bone_rig_resource_index: IntProperty(
@@ -249,6 +291,134 @@ class PrimCollectionProperties(PropertyGroup):
         items=physics_collision_type_items
     )
 
+    # Entity Properties
+    # static and rigid body
+    m_bRemovePhysics: BoolProperty(
+        name="Remove Physics",
+        description="Remove physics",
+        default=False
+    )
+
+    # rigid body
+    m_bKinematic: BoolProperty(
+        name="Kinematic",
+        description="Kinematic",
+        default=False
+    )
+
+    # rigid body
+    m_bStartSleeping: BoolProperty(
+        name="Start Sleeping",
+        description="Start Sleeping",
+        default=False
+    )
+
+    # rigid body
+    m_bIgnoreCharacters: BoolProperty(
+        name="Ignore Characters",
+        description="Ignore Characters",
+        default=False
+    )
+
+    # rigid body
+    m_bEnableCollision: BoolProperty(
+        name="Enable Collision",
+        description="Enable Collision",
+        default=True
+    )
+
+    # rigid body
+    m_bAllowKinematicKinematicContactNotification: BoolProperty(
+        name="Allow Kinematic to Kinematic Contact Notification",
+        description="Allow Kinematic to Kinematic Contact Notification",
+        default=False
+    )
+
+    # rigid body
+    m_fMass: FloatProperty(
+        name="Mass",
+        description="Mass",
+        default=1.0,
+        min=0.1
+    )
+
+    # rigid body
+    m_fFriction: FloatProperty(
+        name="Friction",
+        description="Friction",
+        default=0.5,
+        min=0
+    )
+
+    # rigid body
+    m_fRestitution: FloatProperty(
+        name="Restitution",
+        description="Restitution",
+        default=0.4,
+        min=0,
+        max=0.95
+    )
+
+    # rigid body
+    m_fLinearDampening: FloatProperty(
+        name="Linear Dampening",
+        description="Linear Dampening",
+        default=0.05,
+        min=0
+    )
+
+    # rigid body
+    m_fAngularDampening: FloatProperty(
+        name="Angular Dampening",
+        description="Angular Dampening",
+        default=0.05,
+        min=0
+    )
+
+    # rigid body
+    m_fSleepEnergyThreshold: FloatProperty(
+        name="Sleep Energy Threshold",
+        description="Sleep Energy Threshold",
+        default=0.05,
+        min=0
+    )
+
+    # rigid body
+    m_ePriority: EnumProperty(
+        name='Collision Priority',
+        description='Collision Priority',
+        items=[
+            ("ECOLLISIONPRIORITY_LOW", "Low", ""),
+            ("ECOLLISIONPRIORITY_NORMAL", "Normal", ""),
+            ("ECOLLISIONPRIORITY_HIGH", "High", ""),
+            ("ECOLLISIONPRIORITY_CRITICAL", "Critical", ""),
+        ],
+        default="ECOLLISIONPRIORITY_NORMAL"
+    )
+
+    # rigid body
+    m_eCCD: EnumProperty(
+        name='CCD',
+        description='CCD',
+        items=[
+            ("ECCDUSAGE_DISABLED", "Disabled", ""),
+            ("ECCDUSAGE_AGAINST_STATIC", "Against Static", ""),
+            ("ECCDUSAGE_AGAINST_STATIC_DYNAMIC", "Against Static Dynamic", ""),
+        ],
+        default="ECCDUSAGE_DISABLED"
+    )
+
+    # rigid body
+    m_eCenterOfMass: EnumProperty(
+        name='Center Of Mass',
+        description='Center Of Mass',
+        items=[
+            ("ECOMUSAGE_AUTOCOMPUTE", "Auto Compute", ""),
+            ("ECOMUSAGE_PIVOT", "Pivot", ""),
+        ],
+        default="ECOMUSAGE_AUTOCOMPUTE"
+    )
+
 class GLACIER_PT_PrimCollectionPropertiesPanel(bpy.types.Panel):
     bl_idname = 'GLACIER_PT_PrimCollectionPropertiesPanel'
     bl_space_type = 'PROPERTIES'
@@ -287,6 +457,25 @@ class GLACIER_PT_PrimCollectionPropertiesPanel(bpy.types.Panel):
         row = layout.row(align=True)
         row.prop(coll.prim_collection_properties, "physics_collision_type", text="")
 
+        if int(coll.prim_collection_properties.physics_collision_type) == int(aloc_format.PhysicsCollisionType.STATIC):
+            layout.prop(coll.prim_collection_properties, "m_bRemovePhysics")
+
+        if int(coll.prim_collection_properties.physics_collision_type) == int(aloc_format.PhysicsCollisionType.RIGIDBODY):
+            layout.prop(coll.prim_collection_properties, "m_bRemovePhysics")
+            layout.prop(coll.prim_collection_properties, "m_bKinematic")
+            layout.prop(coll.prim_collection_properties, "m_bStartSleeping")
+            layout.prop(coll.prim_collection_properties, "m_bIgnoreCharacters")
+            layout.prop(coll.prim_collection_properties, "m_bEnableCollision")
+            layout.prop(coll.prim_collection_properties, "m_bAllowKinematicKinematicContactNotification")
+            layout.prop(coll.prim_collection_properties, "m_fMass")
+            layout.prop(coll.prim_collection_properties, "m_fFriction")
+            layout.prop(coll.prim_collection_properties, "m_fRestitution")
+            layout.prop(coll.prim_collection_properties, "m_fLinearDampening")
+            layout.prop(coll.prim_collection_properties, "m_fAngularDampening")
+            layout.prop(coll.prim_collection_properties, "m_fSleepEnergyThreshold")
+            layout.prop(coll.prim_collection_properties, "m_ePriority")
+            layout.prop(coll.prim_collection_properties, "m_eCCD")
+            layout.prop(coll.prim_collection_properties, "m_eCenterOfMass")
 
 class PrimProperties(PropertyGroup):
     """"Stored exposed variables relevant to the RenderPrimitive files"""
@@ -382,7 +571,6 @@ class PrimProperties(PropertyGroup):
         max=1.0,
         default=(1.0, 1.0, 1.0, 1.0)
     )
-
 
 class GLACIER_PT_PrimPropertiesPanel(bpy.types.Panel):
     """"Adds a panel to the object window to show the Prim_Properties"""
@@ -483,6 +671,9 @@ class PrimPhysicsGenerateBoxCollider(Operator):
         cube.name = "BoxCollider"
         cube.parent = parent
         cube.display_type = 'WIRE'
+        collection = current_obj.users_collection[0]
+        collection.objects.link(cube)
+        bpy.context.collection.objects.unlink(cube)
         return {'FINISHED'}
     
 class PrimPhysicsGenerateCapsuleCollider(Operator):
@@ -497,6 +688,9 @@ class PrimPhysicsGenerateCapsuleCollider(Operator):
         cylinder.name = "CapsuleCollider"
         cylinder.parent = parent
         cylinder.display_type = 'WIRE'
+        collection = current_obj.users_collection[0]
+        collection.objects.link(cylinder)
+        bpy.context.collection.objects.unlink(cylinder)
         return {'FINISHED'}
     
 class PrimPhysicsGenerateSphereCollider(Operator):
@@ -511,6 +705,10 @@ class PrimPhysicsGenerateSphereCollider(Operator):
         sphere.name = "SphereCollider"
         sphere.parent = parent
         sphere.display_type = 'WIRE'
+        collection = current_obj.users_collection[0]
+        collection.objects.link(sphere)
+        bpy.context.collection.objects.unlink(sphere)
+
         return {'FINISHED'}
     
 class PrimPhysicsGenerateConvexMeshCollider(Operator):
@@ -522,7 +720,8 @@ class PrimPhysicsGenerateConvexMeshCollider(Operator):
         parent = current_obj
         convex_mesh_obj = current_obj.copy()
         convex_mesh_obj.data = current_obj.data.copy()
-        context.collection.objects.link(convex_mesh_obj)
+        collection = current_obj.users_collection[0]
+        collection.objects.link(convex_mesh_obj)
         convex_mesh_obj.name = "ConvexMeshCollider"
         convex_mesh_obj.matrix_local = mathutils.Matrix()
         convex_mesh_obj.parent = parent
@@ -538,7 +737,8 @@ class PrimPhysicsGenerateTriangleMeshCollider(Operator):
         parent = current_obj
         triangle_mesh_obj = current_obj.copy()
         triangle_mesh_obj.data = current_obj.data.copy()
-        context.collection.objects.link(triangle_mesh_obj)
+        collection = current_obj.users_collection[0]
+        collection.objects.link(triangle_mesh_obj)
         triangle_mesh_obj.name = "TriangleMeshCollider"
         triangle_mesh_obj.matrix_local = mathutils.Matrix()
         triangle_mesh_obj.parent = parent
@@ -584,11 +784,277 @@ class GLACIER_PT_PhysicsPropertiesPanel(bpy.types.Panel):
                 row = layout.row()
                 row.prop(mesh.prim_physics_properties, "collision_layer_type")
 
+class MaterialFloatValue(PropertyGroup):
+    name: StringProperty()
+    friendly_name: StringProperty()
+    value: FloatProperty()
+
+class MaterialColorValue(PropertyGroup):
+    name: StringProperty()
+    friendly_name: StringProperty()
+    value: FloatVectorProperty(subtype="COLOR", min=0, max=1)
+
+class MaterialInstanceFlags(PropertyGroup):
+    name: StringProperty()
+    value: BoolProperty()
+
+class MaterialClassFlags(PropertyGroup):
+    name: StringProperty()
+    value: BoolProperty()
+
+class PrimMaterialProperties(PropertyGroup):
+    def update_material(self, context):
+        material_name = self.prim_materials
+        float_values = materials.get_float_values(material_name)
+        color_values = materials.get_color_values(material_name)
+        instance_flags = materials.get_instance_flags(material_name)
+        class_flags = materials.get_class_flags(material_name)
+
+        print(instance_flags)
+
+        self.material_float_values.clear()
+        self.material_color_values.clear()
+        self.material_instance_flags.clear()
+        self.material_class_flags.clear()
+
+        for fv in float_values:
+            item = self.material_float_values.add()
+            item.name = fv["Name"]
+            item.friendly_name = fv["FriendlyName"]
+            item.value = fv["Value"]
+
+        for cv in color_values:
+            item = self.material_color_values.add()
+            item.name = cv["Name"]
+            item.friendly_name = cv["FriendlyName"]
+            item.value = cv["Value"]
+
+        for flag, value in instance_flags.items():
+            item = self.material_instance_flags.add()
+            item.name = flag
+            item.value = value
+
+        for flag, value in class_flags.items():
+            item = self.material_class_flags.add()
+            item.name = flag
+            item.value = value
+
+    prim_materials: EnumProperty(
+        name='Materialclass',
+        description='PRIM Materials',
+        default="basicmaterial",
+        items=materials.get_materials(),
+        update=lambda self, context: self.update_material(context),
+    )
+
+    material_float_values: CollectionProperty(
+        name="Material Float Values",
+        type=MaterialFloatValue,
+    )
+
+    material_color_values: CollectionProperty(
+        name="Material Color Values",
+        type=MaterialColorValue,
+    )
+
+    material_eres_value: StringProperty(
+        name='EntityResource',
+        description='EntityResource for the material (Used for bullet impact effects)',
+        default="[assembly:/_pro/effects/templates/materialdescriptors/fx_md_env_stone_concrete.template?/fx_md_env_stone_concrete.entitytemplate].pc_entityresource",
+    )
+
+    material_instance_flags: CollectionProperty(
+        name="Material Instance Flags",
+        type=MaterialInstanceFlags,
+    )
+
+    material_class_flags: CollectionProperty(
+        name="Material Class Flags",
+        type=MaterialClassFlags,
+    )
+
+
+class GLACIER_OT_UpdateMaterial(bpy.types.Operator):
+    bl_idname = "material.update_material"
+    bl_label = "Show/Reset Material Properties"
+    bl_description = "Update material properties"
+
+    def execute(self, context):
+        material = context.material
+        properties = material.prim_material_properties
+        properties.update_material(context)
+        return {'FINISHED'}
+    
+class GLACIER_OT_CopyMaterialProperties(bpy.types.Operator):
+    bl_idname = "material.copy_properties"
+    bl_label = "Copy Material Properties"
+    bl_description = "Copy material properties to selected objects"
+
+    @classmethod
+    def poll(cls, context):
+        return context.material and context.active_object and context.selected_objects
+
+    def execute(self, context):
+        active_object = context.active_object
+        selected_objects = [obj for obj in context.selected_objects if obj != active_object]
+
+        active_material = active_object.material_slots[0].material if active_object.material_slots else None
+        if not active_material:
+            self.report({'WARNING'}, "Active object has no material")
+            return {'CANCELLED'}
+
+        active_properties = active_material.prim_material_properties
+
+        for obj in selected_objects:
+            material = obj.material_slots[0].material if obj.material_slots else None
+            if material:
+                if material == active_material:
+                    continue
+
+                properties = material.prim_material_properties
+                properties.prim_materials = active_properties.prim_materials
+                properties.material_eres_value = active_properties.material_eres_value
+                properties.material_float_values.clear()
+                properties.material_color_values.clear()
+                properties.material_instance_flags.clear()
+                properties.material_class_flags.clear()
+
+                for item in active_properties.material_float_values:
+                    new_item = properties.material_float_values.add()
+                    new_item.name = item.name
+                    new_item.friendly_name = item.friendly_name
+                    new_item.value = item.value
+
+                for item in active_properties.material_color_values:
+                    new_item = properties.material_color_values.add()
+                    new_item.name = item.name
+                    new_item.friendly_name = item.friendly_name
+                    new_item.value = item.value
+
+                for item in active_properties.material_instance_flags:
+                    new_item = properties.material_instance_flags.add()
+                    new_item.name = item.name
+                    new_item.value = item.value
+
+                for item in active_properties.material_class_flags:
+                    new_item = properties.material_class_flags.add()
+                    new_item.name = item.name
+                    new_item.value = item.value
+
+            else:
+                self.report({'WARNING'}, f"Object {obj.name} has no material")
+
+        return {'FINISHED'}
+
+class GLACIER_PT_PrimMaterialPropertiesPanel(bpy.types.Panel):
+    bl_idname = 'GLACIER_PT_PrimMaterialPropertiesPanel'
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = 'material'
+    bl_category = 'Glacier'
+    bl_label = 'Prim Material Properties'
+
+    @classmethod
+    def poll(self, context):
+        return context.material is not None
+
+    def draw(self, context):
+        layout = self.layout
+        material = context.material
+        properties = material.prim_material_properties
+
+        # Create a row for the materials dropdown and refresh button
+        row = layout.row(align=True)
+        row.prop(properties, "prim_materials")
+        row.operator("material.update_material", icon="FILE_REFRESH", text="")
+
+        layout.prop(properties, "material_eres_value")
+
+        # Display the float values
+        for item in properties.material_float_values:
+            row = layout.row()
+            row.prop(item, "value", text=item.friendly_name)
+
+        # Display the color values
+        for item in properties.material_color_values:
+            row = layout.row()
+            row.prop(item, "value", text=item.friendly_name)
+
+        layout.operator('material.copy_properties', text="Copy Properties to Selected Objects")
+
+class GLACIER_PT_PrimMaterialAdvancedPropertiesPanel(bpy.types.Panel):
+    bl_idname = 'GLACIER_PT_PrimMaterialAdvancedPropertiesPanel'
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = 'material'
+    bl_category = 'Glacier'
+    bl_parent_id = 'GLACIER_PT_PrimMaterialPropertiesPanel'
+    bl_label = 'Advanced Properties'
+    bl_options = {'DEFAULT_CLOSED'}
+
+    def draw(self, context):
+        pass
+
+class GLACIER_PT_PrimMaterialInstanceFlagsPanel(bpy.types.Panel):
+    bl_idname = 'GLACIER_PT_PrimMaterialInstanceFlagsPanel'
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = 'material'
+    bl_category = 'Glacier'
+    bl_parent_id = 'GLACIER_PT_PrimMaterialAdvancedPropertiesPanel'
+    bl_label = 'Material Instance Flags'
+    bl_options = {'DEFAULT_CLOSED'}
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = False
+        layout.use_property_decorate = True
+
+        material = context.material
+        properties = material.prim_material_properties
+        
+        for item in properties.material_instance_flags:
+            row = layout.row()
+            row.prop(item, "value", text=item.name)
+
+class GLACIER_PT_PrimMaterialClassFlagsPanel(bpy.types.Panel):
+    bl_idname = 'GLACIER_PT_PrimMaterialClassFlagsPanel'
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = 'material'
+    bl_category = 'Glacier'
+    bl_parent_id = 'GLACIER_PT_PrimMaterialAdvancedPropertiesPanel'
+    bl_label = 'Material Class Flags'
+    bl_options = {'DEFAULT_CLOSED'}
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = False
+        layout.use_property_decorate = True
+
+        material = context.material
+        properties = material.prim_material_properties
+        
+        for item in properties.material_class_flags:
+            row = layout.row()
+            row.prop(item, "value", text=item.name)
+
 classes = [
     PrimProperties,
     PrimCollectionProperties,
     GLACIER_PT_PrimPropertiesPanel,
     GLACIER_PT_PrimCollectionPropertiesPanel,
+    MaterialFloatValue,
+    MaterialColorValue,
+    MaterialInstanceFlags,
+    MaterialClassFlags,
+    PrimMaterialProperties,
+    GLACIER_OT_UpdateMaterial,
+    GLACIER_OT_CopyMaterialProperties,
+    GLACIER_PT_PrimMaterialPropertiesPanel,
+    GLACIER_PT_PrimMaterialAdvancedPropertiesPanel,
+    GLACIER_PT_PrimMaterialInstanceFlagsPanel,
+    GLACIER_PT_PrimMaterialClassFlagsPanel,
     PrimPhysicsProperties,
     PrimPhysicsGenerateBoxCollider,
     PrimPhysicsGenerateCapsuleCollider,
@@ -609,6 +1075,7 @@ def register():
     bpy.types.Mesh.prim_properties = PointerProperty(type=PrimProperties)
     bpy.types.Collection.prim_collection_properties = PointerProperty(type=PrimCollectionProperties)    
     bpy.types.Mesh.prim_physics_properties = PointerProperty(type=PrimPhysicsProperties)
+    bpy.types.Material.prim_material_properties = PointerProperty(type=PrimMaterialProperties)
 
 
 def unregister():
@@ -619,6 +1086,7 @@ def unregister():
     del bpy.types.Mesh.prim_properties
     del bpy.types.Collection.prim_collection_properties
     del bpy.types.Mesh.prim_physics_properties
+    del bpy.types.Material.prim_material_properties
 
 
 def menu_func_import(self, context):
@@ -626,8 +1094,10 @@ def menu_func_import(self, context):
 
 
 def menu_func_export(self, context):
-    self.layout.operator(ExportPRIM.bl_idname, text="Glacier RenderPrimitve (.prim)")
-
+    exportprim_instance = self.layout.operator(ExportPRIM.bl_idname, text="Glacier RenderPrimitve (.prim)")
+    exportprim_instance.export_scene = False
+    exportprim_instance2 = self.layout.operator(ExportPRIM.bl_idname, text="Glacier RenderPrimitve (prims, materials, textures, geomentities and collision)")
+    exportprim_instance2.export_scene = True
 
 if __name__ == '__main__':
     register()

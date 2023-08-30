@@ -6,130 +6,233 @@ import mathutils as mu
 from functools import cmp_to_key
 import copy
 import sys
+import hashlib
+import json
+import copy
 
 from . import format
 from .. import io_binary
 from .. import BlenderUI
 from ..file_aloc import format as aloc_format
+from ..file_mat import materials as mat_materials
 
-def save_prim(collection, filepath: str, hitbox_slider: int, force_highres_flag: bool = False):
+def save_prim(
+        selected_collection,
+        filepath: str,
+        hitbox_slider: int,
+        force_highres_flag: bool = False,
+        export_scene: bool = False,
+        export_all_collections: bool = False,
+        collection_folders: bool = False,
+        export_materials_textures: bool = False,
+        export_geomentity: bool = False
+    ):
     """
     Export the selected collection to a prim
     Writes to the given path.
     Returns "FINISHED" when successful
-    """
-    prim = format.RenderPrimitve()
-    prim.header.bone_rig_resource_index = collection.prim_collection_properties.bone_rig_resource_index
-
-    prim.header.object_table = []
-    
-    mesh_obs = [o for o in collection.all_objects if o.type == 'MESH']
-    for ob in mesh_obs:
-        if not ob.name.startswith("BoxCollider") and \
-            not ob.name.startswith("CapsuleCollider") and \
-            not ob.name.startswith("SphereCollider") and \
-            not ob.name.startswith("ConvexMeshCollider") and \
-            not ob.name.startswith("TriangleMeshCollider"):
-            prim_obj = format.PrimMesh()
-            mesh_backup = ob.data.copy()
-            triangulate_object(ob)
-
-            material_id = ob.data.prim_properties.material_id
-            prim_obj.prim_object.material_id = material_id
-
-            if ob.data.prim_properties.axis_lock[0]:
-                prim_obj.prim_object.properties.setXaxisLocked()
-
-            if ob.data.prim_properties.axis_lock[1]:
-                prim_obj.prim_object.properties.setYaxisLocked()
-
-            if ob.data.prim_properties.axis_lock[2]:
-                prim_obj.prim_object.properties.setZaxisLocked()
-
-            if ob.data.prim_properties.no_physics:
-                prim_obj.prim_object.properties.setNoPhysics()
-
-            lod = bitArrToInt(ob.data.prim_properties.lod)
-            prim_obj.prim_object.lodmask = lod
-
-            prim_obj.sub_mesh = save_prim_sub_mesh(ob, hitbox_slider[0])
-
-            if prim_obj.sub_mesh is None:
-                return {'CANCELLED'}
-            # Set subMesh properties
-            if len(prim_obj.sub_mesh.vertexBuffer.vertices) > 100000:
-                prim_obj.prim_object.properties.setHighResolution()
-
-            if force_highres_flag:
-                prim_obj.prim_object.properties.setHighResolution()
-
-            if ob.data.prim_properties.use_mesh_color:
-                prim_obj.sub_mesh.prim_object.properties.setColor1()
-
-            prim_obj.sub_mesh.prim_object.variant_id = ob.data.prim_properties.variant_id
-            prim_obj.prim_object.zbias = ob.data.prim_properties.z_bias
-            prim_obj.prim_object.zoffset = ob.data.prim_properties.z_offset
-            if ob.data.prim_properties.use_mesh_color:
-                prim_obj.sub_mesh.prim_object.color1[0] = round(ob.data.prim_properties.mesh_color[0] * 255)
-                prim_obj.sub_mesh.prim_object.color1[1] = round(ob.data.prim_properties.mesh_color[1] * 255)
-                prim_obj.sub_mesh.prim_object.color1[2] = round(ob.data.prim_properties.mesh_color[2] * 255)
-                prim_obj.sub_mesh.prim_object.color1[3] = round(ob.data.prim_properties.mesh_color[3] * 255)
-
-            prim.header.object_table.append(prim_obj)
-            ob.data = mesh_backup
-
+    """    
     export_file = os.fsencode(filepath)
-    if os.path.exists(export_file):
-        os.remove(export_file)
-    bre = io_binary.BinaryReader(open(export_file, 'wb'))
-    prim.write(bre)
-    bre.close()
-    
-    # Only export to ALOC if data and collision types are both not set to NONE
-    physics_data_type = int(collection.prim_collection_properties.physics_data_type)
-    physics_collision_type = int(collection.prim_collection_properties.physics_collision_type)
-    if physics_data_type > 0 and physics_collision_type > 0:
-        #print(physics_data_type, physics_collision_type)
-        aloc = aloc_format.Physics()
-        collision_settings = aloc_format.PhysicsCollisionSettings()
-        collision_settings.data_type = physics_data_type
-        collision_settings.collider_type = physics_collision_type
-        aloc.set_collision_settings(collision_settings)
-        for ob in mesh_obs:
-            if ob.name.startswith("ConvexMeshCollider"):
-                vertices, indices = get_vertices_and_indices(ob)
-                aloc.add_convex_mesh(vertices, indices, int(ob.data.prim_physics_properties.collision_layer_type))
-                #print("convex mesh!")
-                #print(vertices)
-                #print(indices)
-                del vertices
-                del indices
-            if ob.name.startswith("TriangleMeshCollider"):
-                vertices, indices = get_vertices_and_indices(ob)
-                aloc.add_triangle_mesh(vertices, indices, int(ob.data.prim_physics_properties.collision_layer_type))
-                #print("triangular mesh!")
-                #print(vertices)
-                #print(indices)
-                del vertices
-                del indices
-            if ob.name.startswith("BoxCollider"):
-                #print("box", ob.dimensions, ob.data.prim_physics_properties.collision_layer_type, ob.matrix_world.to_translation(), ob.matrix_world.to_quaternion())
-                aloc.add_primitive_box(list(ob.dimensions / 2), int(ob.data.prim_physics_properties.collision_layer_type), list(ob.matrix_world.to_translation())[:3], list(ob.matrix_world.to_quaternion()))
-            elif ob.name.startswith("CapsuleCollider"):
-                radius = (ob.dimensions[0] + ob.dimensions[1]) / 4
-                length = ob.dimensions[2]
-                #print("cap", radius, length, ob.matrix_world.to_translation(), ob.matrix_world.to_quaternion())
-                aloc.add_primitive_capsule(radius, length, int(ob.data.prim_physics_properties.collision_layer_type), list(ob.matrix_world.to_translation())[:3], list(ob.matrix_world.to_quaternion()))
-            elif ob.name.startswith("SphereCollider"):
-                radius = (ob.dimensions[0] + ob.dimensions[1]) / 4
-                #print("sph", radius, int(ob.data.prim_physics_properties.collision_layer_type), ob.matrix_world.to_translation(), ob.matrix_world.to_quaternion())
-                aloc.add_primitive_sphere(radius, int(ob.data.prim_physics_properties.collision_layer_type), list(ob.matrix_world.to_translation())[:3], list(ob.matrix_world.to_quaternion()))
-        aloc.write(export_file + b".aloc")
+    export_dir_original = export_file[:export_file.rfind(os.sep.encode())]
+    bpy.context.scene.render.image_settings.file_format = 'TARGA'
+    collections = []
+    material_jsons = mat_materials.Materials()
+    hash_list_entries = {}
+
+    if export_all_collections:
+        for collection in bpy.data.scenes[0].collection.children:
+            collections.append(collection)
+    else:
+        collections.append(selected_collection)
+
+    for collection in collections:
+        prim = format.RenderPrimitve()
+        prim.header.bone_rig_resource_index = collection.prim_collection_properties.bone_rig_resource_index
         
+        prim.header.object_table = []
+
+        materials = {}
+
+        export_dir = export_dir_original
+        collection_name = collection.name.replace(".","_")
+        if export_scene:
+            if collection_folders:
+                export_dir += os.sep.encode() + collection_name.encode()
+                if not os.path.exists(export_dir):
+                    os.system("mkdir \"" + export_dir.decode() + "\"")
+        mesh_obs = [o for o in collection.all_objects if o.type == 'MESH']
+        for ob in mesh_obs:
+            if not ob.name.startswith("BoxCollider") and \
+                not ob.name.startswith("CapsuleCollider") and \
+                not ob.name.startswith("SphereCollider") and \
+                not ob.name.startswith("ConvexMeshCollider") and \
+                not ob.name.startswith("TriangleMeshCollider"):
+                prim_obj = format.PrimMesh()
+                mesh_backup = ob.data.copy()
+                triangulate_object(ob)
+
+                material_id = ob.data.prim_properties.material_id
+                prim_obj.prim_object.material_id = material_id
+
+                if ob.data.prim_properties.axis_lock[0]:
+                    prim_obj.prim_object.properties.setXaxisLocked()
+
+                if ob.data.prim_properties.axis_lock[1]:
+                    prim_obj.prim_object.properties.setYaxisLocked()
+
+                if ob.data.prim_properties.axis_lock[2]:
+                    prim_obj.prim_object.properties.setZaxisLocked()
+
+                if ob.data.prim_properties.no_physics:
+                    prim_obj.prim_object.properties.setNoPhysics()
+
+                lod = bitArrToInt(ob.data.prim_properties.lod)
+                prim_obj.prim_object.lodmask = lod
+
+                prim_obj.sub_mesh, material_id = save_prim_sub_mesh(
+                    collection_name,
+                    ob,
+                    hitbox_slider[0],
+                    export_dir,
+                    material_id,
+                    export_materials_textures,
+                    materials,
+                    material_jsons,
+                    hash_list_entries,
+                    export_scene
+                )
+                if material_id != -1:
+                    prim_obj.prim_object.material_id = material_id
+
+                if prim_obj.sub_mesh is None:
+                    return {'CANCELLED'}
+                # Set subMesh properties
+                if len(prim_obj.sub_mesh.vertexBuffer.vertices) > 100000:
+                    prim_obj.prim_object.properties.setHighResolution()
+
+                if force_highres_flag:
+                    prim_obj.prim_object.properties.setHighResolution()
+
+                if ob.data.prim_properties.use_mesh_color:
+                    prim_obj.sub_mesh.prim_object.properties.setColor1()
+
+                prim_obj.sub_mesh.prim_object.variant_id = ob.data.prim_properties.variant_id
+                prim_obj.prim_object.zbias = ob.data.prim_properties.z_bias
+                prim_obj.prim_object.zoffset = ob.data.prim_properties.z_offset
+                if ob.data.prim_properties.use_mesh_color:
+                    prim_obj.sub_mesh.prim_object.color1[0] = round(ob.data.prim_properties.mesh_color[0] * 255)
+                    prim_obj.sub_mesh.prim_object.color1[1] = round(ob.data.prim_properties.mesh_color[1] * 255)
+                    prim_obj.sub_mesh.prim_object.color1[2] = round(ob.data.prim_properties.mesh_color[2] * 255)
+                    prim_obj.sub_mesh.prim_object.color1[3] = round(ob.data.prim_properties.mesh_color[3] * 255)
+
+                prim.header.object_table.append(prim_obj)
+                ob.data = mesh_backup
+        
+        if export_scene:
+            geom_ioi_path = "[assembly:/_pro/environment/geometry/" + collection_name + "/" + collection_name + ".prim].pc_entitytype"
+            geom_ioi_path, geom_ioi_hash = get_ioi_path_and_hash(geom_ioi_path)
+            #print("IOI Hash GEOMENTITY:", geom_ioi_hash)
+            #print("IOI Path GEOMENTITY:", geom_ioi_path)
+            hash_list_entry_key = geom_ioi_hash + ".TEMP"
+            if hash_list_entry_key not in hash_list_entries:
+                hash_list_entries[hash_list_entry_key] = geom_ioi_path
+            prim_ioi_path = "[assembly:/_pro/environment/materials/" + collection_name + "/" + collection_name + ".prim].pc_prim"
+            prim_ioi_path, prim_ioi_hash = get_ioi_path_and_hash(prim_ioi_path)
+            #print("IOI Hash PRIM:", prim_ioi_hash)
+            #print("IOI Path PRIM:", prim_ioi_path)
+            hash_list_entry_key = prim_ioi_hash + ".PRIM"
+            if hash_list_entry_key not in hash_list_entries:
+                hash_list_entries[hash_list_entry_key] = prim_ioi_path
+            aloc_ioi_path = "[assembly:/_pro/environment/materials/" + collection_name + "/" + collection_name + ".prim].pc_coll"
+            aloc_ioi_path, aloc_ioi_hash = get_ioi_path_and_hash(aloc_ioi_path)
+            #print("IOI Hash ALOC:", aloc_ioi_hash)
+            #print("IOI Path ALOC:", aloc_ioi_path)
+            hash_list_entry_key = aloc_ioi_hash + ".ALOC"
+            if hash_list_entry_key not in hash_list_entries:
+                hash_list_entries[hash_list_entry_key] = aloc_ioi_path
+
+        if export_scene:
+            prim_export_path = export_dir + os.sep.encode() + prim_ioi_hash.encode() + b".prim"
+        else:
+            prim_export_path = os.fsencode(filepath)
+            
+        if os.path.exists(prim_export_path):
+            os.remove(prim_export_path)
+        bre = io_binary.BinaryReader(open(prim_export_path, 'wb'))
+        prim.write(bre)
+        bre.close()
+
+        if export_scene:
+            write_prim_meta(prim_export_path + b".meta.json", materials)
+
+            write_aloc = False
+            # Only export to ALOC if data and collision types are both not set to NONE
+            physics_data_type = int(collection.prim_collection_properties.physics_data_type)
+            physics_collision_type = int(collection.prim_collection_properties.physics_collision_type)
+            if physics_data_type > 0 and physics_collision_type > 0:
+                #print(physics_data_type, physics_collision_type)
+                aloc = aloc_format.Physics()
+                collision_settings = aloc_format.PhysicsCollisionSettings()
+                collision_settings.data_type = physics_data_type
+                collision_settings.collider_type = physics_collision_type
+                aloc.set_collision_settings(collision_settings)
+                for ob in mesh_obs:
+                    if ob.name.startswith("ConvexMeshCollider"):
+                        vertices, indices = get_vertices_and_indices(ob)
+                        aloc.add_convex_mesh(vertices, indices, int(ob.data.prim_physics_properties.collision_layer_type))
+                        write_aloc = True
+                        del vertices
+                        del indices
+                    elif ob.name.startswith("TriangleMeshCollider"):
+                        vertices, indices = get_vertices_and_indices(ob)
+                        aloc.add_triangle_mesh(vertices, indices, int(ob.data.prim_physics_properties.collision_layer_type))
+                        write_aloc = True
+                        del vertices
+                        del indices
+                    elif ob.name.startswith("BoxCollider"):
+                        aloc.add_primitive_box(list(ob.dimensions / 2), int(ob.data.prim_physics_properties.collision_layer_type), list(ob.matrix_world.to_translation())[:3], list(ob.matrix_world.to_quaternion()))
+                        write_aloc = True
+                    elif ob.name.startswith("CapsuleCollider"):
+                        radius = (ob.dimensions[0] + ob.dimensions[1]) / 4
+                        length = ob.dimensions[2]
+                        aloc.add_primitive_capsule(radius, length, int(ob.data.prim_physics_properties.collision_layer_type), list(ob.matrix_world.to_translation())[:3], list(ob.matrix_world.to_quaternion()))
+                        write_aloc = True
+                    elif ob.name.startswith("SphereCollider"):
+                        radius = (ob.dimensions[0] + ob.dimensions[1]) / 4
+                        aloc.add_primitive_sphere(radius, int(ob.data.prim_physics_properties.collision_layer_type), list(ob.matrix_world.to_translation())[:3], list(ob.matrix_world.to_quaternion()))
+                        write_aloc = True
+                if write_aloc:
+                    aloc.write(export_dir + os.sep.encode() + aloc_ioi_hash.encode() + b".aloc")
+            
+            if not write_aloc:
+                aloc_ioi_path = ""
+
+            if export_geomentity:
+                geom_export_path = export_dir + os.sep.encode() + geom_ioi_hash.encode() + b".entity.json"
+                write_geomentity(collection, geom_export_path, geom_ioi_hash, prim_ioi_path, aloc_ioi_path)
+    
+    if len(hash_list_entries) > 0:
+        hash_list_path = export_dir + os.sep.encode() + b"hashlist.txt"
+        output = ""
+        for entry in hash_list_entries:
+            output += entry + "," + hash_list_entries[entry] + "\n"
+        with open(hash_list_path, "w", encoding="utf-8") as f:
+            f.write(output)
+
     return {'FINISHED'}
 
 
-def save_prim_sub_mesh(blender_obj, max_tris_per_chunk):
+def save_prim_sub_mesh(
+        collection_name,
+        blender_obj,
+        max_tris_per_chunk,
+        export_dir,
+        material_id,
+        export_materials_textures,
+        materials,
+        material_jsons,
+        hash_list_entries,
+        export_scene):
     """
     Export a blender mesh to a PrimSubMesh
     Returns a PrimSubMesh
@@ -272,10 +375,140 @@ def save_prim_sub_mesh(blender_obj, max_tris_per_chunk):
         prim_mesh.vertexBuffer.vertices[i] = vertex
     
     prim_mesh.collision.tri_per_chunk = max_tris_per_chunk
-    save_prim_hitboxes(mesh, prim_mesh)
+    #save_prim_hitboxes(mesh, prim_mesh)
+    
+    if export_scene:
+        if export_materials_textures:
+            material_id = -1
+            first_material_found = False
+            for slot in blender_obj.material_slots:
+                if slot.material != None:
+                    for n in slot.material.node_tree.nodes:
+                        if n.type == "BSDF_PRINCIPLED":
+                            if not first_material_found:
+                                if slot.material.name in materials:
+                                    material_id = materials[slot.material.name]["index"]
+                                    first_material_found = True
+                                else:
+                                    material = {}
+                                    material["material"] = slot.material.prim_material_properties.prim_materials
+                                    material["floats"] = slot.material.prim_material_properties.material_float_values
+                                    material["colors"] = slot.material.prim_material_properties.material_color_values
+                                    material["ERES"] = slot.material.prim_material_properties.material_eres_value
+                                    material["instance_flags"] = slot.material.prim_material_properties.material_instance_flags
+                                    material["class_flags"] = slot.material.prim_material_properties.material_class_flags
+                                    if "Base Color" in n.inputs:
+                                        for l in n.inputs["Base Color"].links:
+                                            if l.from_node.type == "TEX_IMAGE":
+                                                #print("Diffuse Image Texture Found:", l.from_node.image.name)
+                                                ioi_path = "[assembly:/_pro/environment/textures/" + collection_name + "/" + slot.material.name.replace(".","_") + ".texture?/diffuse.tex](ascolormap)"
+                                                ioi_path_text = ioi_path + ".pc_tex"
+                                                ioi_path_texd = ioi_path + ".pc_mipblock1"
+                                                ioi_path_text, ioi_hash_text = get_ioi_path_and_hash(ioi_path_text)
+                                                ioi_path_texd, ioi_hash_texd = get_ioi_path_and_hash(ioi_path_texd)
+                                                material["diffuse"] = ioi_path_text
+                                                #print("IOI Hash TEXT:", ioi_hash_text, ",", ioi_path_text)
+                                                #print("IOI Hash TEXD:", ioi_hash_texd, ",", ioi_path_texd)
+                                                hash_list_entry_key = ioi_hash_text + ".TEXT"
+                                                if hash_list_entry_key not in hash_list_entries:
+                                                    hash_list_entries[hash_list_entry_key] = ioi_path_text
+                                                hash_list_entry_key = ioi_hash_texd + ".TEXD"
+                                                if hash_list_entry_key not in hash_list_entries:
+                                                    hash_list_entries[hash_list_entry_key] = ioi_path_texd
+                                                texture_filename = ioi_hash_text + "~" + ioi_hash_texd + ".texture.tga"
+                                                image_texture = bpy.data.images[l.from_node.image.name]
+                                                if image_texture.has_data:
+                                                    texture_output_path = export_dir + os.sep.encode() + texture_filename.encode()
+                                                    image_texture.save_render(texture_output_path)
+                                                    text_texd_scale = int(image_texture.size[0]) * int(image_texture.size[1])
+                                                    write_texture_meta(texture_output_path + b".meta", text_texd_scale, b'\x49')
+                                    if "Normal" in n.inputs:
+                                        for l in n.inputs["Normal"].links:
+                                            if l.from_node.type == "NORMAL_MAP":
+                                                if "Color" in l.from_node.inputs:
+                                                    for ln in l.from_node.inputs["Color"].links:
+                                                        if ln.from_node.type == "TEX_IMAGE":
+                                                            #print("Normal Image Texture Found:", ln.from_node.image.name)
+                                                            ioi_path = "[assembly:/_pro/environment/textures/" + collection_name + "/" + slot.material.name.replace(".","_") + ".texture?/normal.tex](asnormalmap)"
+                                                            ioi_path_text = ioi_path + ".pc_tex"
+                                                            ioi_path_texd = ioi_path + ".pc_mipblock1"
+                                                            ioi_path_text, ioi_hash_text = get_ioi_path_and_hash(ioi_path_text)
+                                                            ioi_path_texd, ioi_hash_texd = get_ioi_path_and_hash(ioi_path_texd)
+                                                            material["normal"] = ioi_path_text
+                                                            #print("IOI Hash TEXT:", ioi_hash_text, ",", ioi_path_text)
+                                                            #print("IOI Hash TEXD:", ioi_hash_texd, ",", ioi_path_texd)
+                                                            hash_list_entry_key = ioi_hash_text + ".TEXT"
+                                                            if hash_list_entry_key not in hash_list_entries:
+                                                                hash_list_entries[hash_list_entry_key] = ioi_path_text
+                                                            hash_list_entry_key = ioi_hash_texd + ".TEXD"
+                                                            if hash_list_entry_key not in hash_list_entries:
+                                                                hash_list_entries[hash_list_entry_key] = ioi_path_texd
+                                                            texture_filename = ioi_hash_text + "~" + ioi_hash_texd + ".texture.tga"
+                                                            image_texture = bpy.data.images[ln.from_node.image.name]
+                                                            if image_texture.has_data:
+                                                                texture_output_path = export_dir + os.sep.encode() + texture_filename.encode()
+                                                                image_texture.save_render(texture_output_path)
+                                                                text_texd_scale = int(image_texture.size[0]) * int(image_texture.size[1])
+                                                                write_texture_meta(texture_output_path + b".meta", text_texd_scale, b'\x55')
+                                    if "Specular" in n.inputs:
+                                        for l in n.inputs["Specular"].links:
+                                            if l.from_node.type == "TEX_IMAGE":
+                                                #print("Specular Image Texture Found:", l.from_node.image.name)
+                                                ioi_path = "[assembly:/_pro/environment/textures/" + collection_name + "/" + slot.material.name.replace(".","_") + ".texture?/specular.tex](ascolormap)"
+                                                ioi_path_text = ioi_path + ".pc_tex"
+                                                ioi_path_texd = ioi_path + ".pc_mipblock1"
+                                                ioi_path_text, ioi_hash_text = get_ioi_path_and_hash(ioi_path_text)
+                                                ioi_path_texd, ioi_hash_texd = get_ioi_path_and_hash(ioi_path_texd)
+                                                material["specular"] = ioi_path_text
+                                                #print("IOI Hash TEXT:", ioi_hash_text, ",", ioi_path_text)
+                                                #print("IOI Hash TEXD:", ioi_hash_texd, ",", ioi_path_texd)
+                                                hash_list_entry_key = ioi_hash_text + ".TEXT"
+                                                if hash_list_entry_key not in hash_list_entries:
+                                                    hash_list_entries[hash_list_entry_key] = ioi_path_text
+                                                hash_list_entry_key = ioi_hash_texd + ".TEXD"
+                                                if hash_list_entry_key not in hash_list_entries:
+                                                    hash_list_entries[hash_list_entry_key] = ioi_path_texd
+                                                texture_filename = ioi_hash_text + "~" + ioi_hash_texd + ".texture.tga"
+                                                image_texture = bpy.data.images[l.from_node.image.name]
+                                                if image_texture.has_data:
+                                                    #print(len(image_texture.pixels))
+                                                    #print(image_texture.size[0], image_texture.size[1])
+                                                    texture_output_path = export_dir + os.sep.encode() + texture_filename.encode()
+                                                    image_texture.save_render(texture_output_path)
+                                                    text_texd_scale = int(image_texture.size[0]) * int(image_texture.size[1])
+                                                    write_texture_meta(texture_output_path + b".meta", text_texd_scale, b'\x5A')
+                                    first_material_found = True
+                                    ioi_path = "[assembly:/_pro/environment/materials/" + collection_name + "/" + slot.material.name.replace(".","_") + ".mi].pc_mi"
+                                    ioi_path_entitytype = "[assembly:/_pro/environment/materials/" + collection_name + "/" + slot.material.name.replace(".","_") + ".mi].pc_entitytype"
+                                    ioi_path_entityblueprint = "[assembly:/_pro/environment/materials/" + collection_name + "/" + slot.material.name.replace(".","_") + ".mi].pc_entityblueprint"
+                                    ioi_path, ioi_hash = get_ioi_path_and_hash(ioi_path)
+                                    ioi_path_entitytype, ioi_hash_entitytype = get_ioi_path_and_hash(ioi_path_entitytype)
+                                    ioi_path_entityblueprint, ioi_hash_entityblueprint = get_ioi_path_and_hash(ioi_path_entityblueprint)
+                                    #print("IOI Hash Material:", ioi_hash, ",", ioi_path)
+                                    material_json_output_path = export_dir + os.sep.encode() + ioi_hash.encode() + b".material.json"
+                                    material["ioi_path"] = ioi_path
+                                    material["ioi_path_entitytype"] = ioi_path_entitytype
+                                    material["ioi_path_entityblueprint"] = ioi_path_entityblueprint
+                                    material["ioi_hash"] = ioi_hash
+                                    material["ioi_hash_entitytype"] = ioi_hash_entitytype
+                                    material["ioi_hash_entityblueprint"] = ioi_hash_entityblueprint
+                                    material["name"] = slot.material.name.replace(".","_") + ".mi"
+                                    material["index"] = len(materials)
+                                    #print(material)
+                                    hash_list_entry_key = ioi_hash + ".MATI"
+                                    if hash_list_entry_key not in hash_list_entries:
+                                        hash_list_entries[hash_list_entry_key] = ioi_path
+                                    hash_list_entry_key_entitytype = ioi_hash_entitytype + ".MATT"
+                                    if hash_list_entry_key_entitytype not in hash_list_entries:
+                                        hash_list_entries[hash_list_entry_key_entitytype] = ioi_path_entitytype
+                                    hash_list_entry_key_entityblueprint = ioi_hash_entityblueprint + ".MATB"
+                                    if hash_list_entry_key_entityblueprint not in hash_list_entries:
+                                        hash_list_entries[hash_list_entry_key_entityblueprint] = ioi_path_entityblueprint
+                                    write_material_json(material_json_output_path, material, material_jsons)
+                                    materials[slot.material.name] = material
+                                    material_id = materials[slot.material.name]["index"]
 
     # automatic collision bounding box generation start
-    '''
     triangles = []
     for i in range(int(len(prim_mesh.indices) / 3)):
         triangles.append([
@@ -307,12 +540,12 @@ def save_prim_sub_mesh(blender_obj, max_tris_per_chunk):
         count += 1
         if count == max_tris_per_chunk:
             entry = format.BoxColiEntry()
-            coli_bb_min[0] = int(((coli_bb_min[0] - bbox[0][0]) * 255) / (bbox_x))
-            coli_bb_min[1] = int(((coli_bb_min[1] - bbox[0][1]) * 255) / (bbox_y))
-            coli_bb_min[2] = int(((coli_bb_min[2] - bbox[0][2]) * 255) / (bbox_z))
-            coli_bb_max[0] = int(((coli_bb_max[0] - bbox[0][0]) * 255) / (bbox_x))
-            coli_bb_max[1] = int(((coli_bb_max[1] - bbox[0][1]) * 255) / (bbox_y))
-            coli_bb_max[2] = int(((coli_bb_max[2] - bbox[0][2]) * 255) / (bbox_z))
+            coli_bb_min[0] = 0 if bbox_x <= 0.0 else int(((coli_bb_min[0] - bbox[0][0]) * 255) / (bbox_x))
+            coli_bb_min[1] = 0 if bbox_y <= 0.0 else int(((coli_bb_min[1] - bbox[0][1]) * 255) / (bbox_y))
+            coli_bb_min[2] = 0 if bbox_z <= 0.0 else int(((coli_bb_min[2] - bbox[0][2]) * 255) / (bbox_z))
+            coli_bb_max[0] = 0 if bbox_x <= 0.0 else int(((coli_bb_max[0] - bbox[0][0]) * 255) / (bbox_x))
+            coli_bb_max[1] = 0 if bbox_y <= 0.0 else int(((coli_bb_max[1] - bbox[0][1]) * 255) / (bbox_y))
+            coli_bb_max[2] = 0 if bbox_z <= 0.0 else int(((coli_bb_max[2] - bbox[0][2]) * 255) / (bbox_z))
             entry.min = coli_bb_min
             entry.max = coli_bb_max
             prim_mesh.collision.box_entries.append(entry)
@@ -322,12 +555,12 @@ def save_prim_sub_mesh(blender_obj, max_tris_per_chunk):
             coli_bb_min = [sys.float_info.max] * 3
     if count % max_tris_per_chunk != 0:
         entry = format.BoxColiEntry()
-        coli_bb_min[0] = int(((coli_bb_min[0] - bbox[0][0]) * 255) / (bbox_x))
-        coli_bb_min[1] = int(((coli_bb_min[1] - bbox[0][1]) * 255) / (bbox_y))
-        coli_bb_min[2] = int(((coli_bb_min[2] - bbox[0][2]) * 255) / (bbox_z))
-        coli_bb_max[0] = int(((coli_bb_max[0] - bbox[0][0]) * 255) / (bbox_x))
-        coli_bb_max[1] = int(((coli_bb_max[1] - bbox[0][1]) * 255) / (bbox_y))
-        coli_bb_max[2] = int(((coli_bb_max[2] - bbox[0][2]) * 255) / (bbox_z))
+        coli_bb_min[0] = 0 if bbox_x <= 0.0 else int(((coli_bb_min[0] - bbox[0][0]) * 255) / (bbox_x))
+        coli_bb_min[1] = 0 if bbox_y <= 0.0 else int(((coli_bb_min[1] - bbox[0][1]) * 255) / (bbox_y))
+        coli_bb_min[2] = 0 if bbox_z <= 0.0 else int(((coli_bb_min[2] - bbox[0][2]) * 255) / (bbox_z))
+        coli_bb_max[0] = 0 if bbox_x <= 0.0 else int(((coli_bb_max[0] - bbox[0][0]) * 255) / (bbox_x))
+        coli_bb_max[1] = 0 if bbox_y <= 0.0 else int(((coli_bb_max[1] - bbox[0][1]) * 255) / (bbox_y))
+        coli_bb_max[2] = 0 if bbox_z <= 0.0 else int(((coli_bb_max[2] - bbox[0][2]) * 255) / (bbox_z))
         entry.min = coli_bb_min
         entry.max = coli_bb_max
         prim_mesh.collision.box_entries.append(entry)
@@ -335,10 +568,9 @@ def save_prim_sub_mesh(blender_obj, max_tris_per_chunk):
         count2 += 1
         coli_bb_max = [-sys.float_info.max] * 3
         coli_bb_min = [sys.float_info.max] * 3
-    '''
     # automatic collision bounding box generation end
 
-    return prim_mesh
+    return prim_mesh, material_id
 
 
 def get_positions(mesh, matrix):
@@ -538,3 +770,266 @@ def get_vertices_and_indices(blender_obj):
     vertices = [i for v in vertices for i in v]
     
     return vertices, indices
+
+def write_texture_meta(output_path, texture_size, format):
+    meta_data = b'\x00\x00\x00\x00\x48\x00\x00\x00'
+    meta_data += format
+    meta_data += b'\x00\x01'
+    scaling = b'\x00\x00\x00\x00\x00'
+    if texture_size == 32768 or texture_size == 65536:
+        scaling = b'\x01\x01\x00\x00\x00'
+    elif texture_size == 131072 or texture_size == 262144:
+        scaling = b'\x02\x02\x00\x00\x00'
+    elif texture_size == 524288 or texture_size == 1048576:
+        scaling = b'\x03\x03\x00\x00\x00'
+    elif texture_size == 2097152 or texture_size == 4194304:
+        scaling = b'\x04\x04\x00\x00\x00'
+    elif texture_size == 8388608 or texture_size == 16777216:
+        scaling = b'\x05\x05\x00\x00\x00'
+    meta_data += scaling
+    with open(output_path, "wb") as f:
+        f.write(meta_data)
+
+def write_material_json(output_path, material, material_jsons):
+    material_jsons_copy = copy.deepcopy(material_jsons)
+    for t in material_jsons_copy.materials[material["material"]]["Material"]["Instance"][0]["Binder"][0]["Texture"]:
+        if "FriendlyName" in t:
+            del t["FriendlyName"]
+    for f in material_jsons_copy.materials[material["material"]]["Material"]["Instance"][0]["Binder"][0]["Float Value"]:
+        if "FriendlyName" in f:
+            del f["FriendlyName"]
+    for c in material_jsons_copy.materials[material["material"]]["Material"]["Instance"][0]["Binder"][0]["Color"]:
+        if "FriendlyName" in c:
+            del c["FriendlyName"]
+    #print("Writing material json for " + material["name"])
+    for m in material_jsons_copy.materials:
+        if m == material["material"]:
+            material_json = material_jsons_copy.materials[m]
+            material_json["MATI"] = material["ioi_path"]
+            material_json["MATT"] = material["ioi_path_entitytype"]
+            material_json["MATB"] = material["ioi_path_entityblueprint"]
+            material_json["ERES"] = material["ERES"]
+            material_json["Material"]["Instance"][0]["Name"] = material["name"]
+            if "Texture" in material_json["Material"]["Instance"][0]["Binder"][0]:
+                for t in material_json["Material"]["Instance"][0]["Binder"][0]["Texture"]:
+                    if t["Texture Id"] == "diffuse":
+                        if "diffuse" in material:
+                            t["Texture Id"] = material["diffuse"]
+                            print("Diffuse: " + material["diffuse"])
+                        else:
+                            t["Texture Id"] = ""
+                    if t["Texture Id"] == "normal":
+                        if "normal" in material:
+                            t["Texture Id"] = material["normal"]
+                        else:
+                            t["Texture Id"] = ""
+                    if t["Texture Id"] == "specular":
+                        if "specular" in material:
+                            t["Texture Id"] = material["specular"]
+                        else:
+                            t["Texture Id"] = ""
+            for f in material["floats"]:
+                if "Float Value" in material_json["Material"]["Instance"][0]["Binder"][0]:
+                    for fv in material_json["Material"]["Instance"][0]["Binder"][0]["Float Value"]:
+                        if f.name == fv["Name"]:
+                            fv["Value"] = f.value
+            for c in material["colors"]:
+                if "Color" in material_json["Material"]["Instance"][0]["Binder"][0]:
+                    for cv in material_json["Material"]["Instance"][0]["Binder"][0]["Color"]:
+                        if c.name == cv["Name"]:
+                            cv["Value"] = [c.value.r, c.value.g, c.value.b]
+
+            # Flags section
+            for flag in material["class_flags"]:
+                material_json["Flags"]["Class"][flag["name"]] = True if flag["value"] == 1 else False
+
+            for flag in material["instance_flags"]:
+                material_json["Flags"]["Instance"][flag["name"]] = True if flag["value"] == 1 else False
+
+            # Overrides section
+            for texture_key, texture_id in material_json["Overrides"]["Texture"].items():
+                if texture_id in ["diffuse", "specular", "normal"]:
+                    if texture_id in material:
+                        material_json["Overrides"]["Texture"][texture_key] = material[texture_id]
+                    else:
+                        material_json["Overrides"]["Texture"][texture_key] = ""
+            for float_key in material_json["Overrides"]:
+                if float_key in material["floats"]:
+                    material_json["Overrides"][float_key] = material["floats"][float_key].value
+            for color_key, color_values in material_json["Overrides"]["Color"].items():
+                if color_key in material["colors"]:
+                    material_json["Overrides"]["Color"][color_key] = [
+                        material["colors"][color_key].value.r,
+                        material["colors"][color_key].value.g,
+                        material["colors"][color_key].value.b,
+                    ]
+
+            with open(output_path, "w", encoding='utf-8') as f:
+                json.dump(material_json, f, ensure_ascii=False, indent=4)
+
+def get_ioi_path_and_hash(ioi_path):
+    ioi_path = ioi_path.lower()
+    ioi_hash = "00" + hashlib.md5(ioi_path.encode('utf-8')).hexdigest().upper()[2:16]
+    return ioi_path, ioi_hash
+
+def write_geomentity(collection, geom_export_path, geom_ioi_hash, prim_ioi_path, aloc_ioi_path):
+    geomentity_json = {
+        "tempHash": geom_ioi_hash,
+        "tbluHash": "EDIT!!!",
+        "rootEntity": "2ed3aa8cc1e0b74f",
+        "entities": {
+            "2ed3aa8cc1e0b74f": {
+                "parent": None,
+                "name": "GeomEntity01",
+                "factory": "EDIT!!!",
+                "blueprint": "EDIT!!!",
+                "properties": {
+                    "m_mTransform": {
+                        "type": "SMatrix43",
+                        "value": {
+                            "rotation": {
+                                "x": 0,
+                                "y": 0,
+                                "z": 0
+                            },
+                            "position": {
+                                "x": 0,
+                                "y": 0,
+                                "z": 0
+                            }
+                        }
+                    },
+                    "m_ResourceID": {
+                        "type": "ZRuntimeResourceID",
+                        "value": {
+                            "resource": prim_ioi_path,
+                            "flag": "5F"
+                        }
+                    }
+                }
+            }
+        },
+        "propertyOverrides": [],
+        "overrideDeletes": [],
+        "pinConnectionOverrides": [],
+        "pinConnectionOverrideDeletes": [],
+        "externalScenes": [],
+        "subType": "template",
+        "quickEntityVersion": 3.1,
+        "extraFactoryDependencies": [],
+        "extraBlueprintDependencies": [],
+        "comments": []
+    }
+    if aloc_ioi_path != "":
+        geomentity_json["entities"]["2ed3aa8cc1e0b74f"]["properties"]["m_CollisionResourceID"] = {
+            "type": "ZRuntimeResourceID",
+            "value": {
+                "resource": aloc_ioi_path,
+                "flag": "5F"
+            }
+        }
+    if int(collection.prim_collection_properties.physics_collision_type) == int(aloc_format.PhysicsCollisionType.NONE):
+        geomentity_json["tbluHash"] = "008130A85A690BE8"
+        geomentity_json["entities"]["2ed3aa8cc1e0b74f"]["factory"] = "[modules:/zgeomentity.class].pc_entitytype"
+        geomentity_json["entities"]["2ed3aa8cc1e0b74f"]["blueprint"] = "[modules:/zgeomentity.class].pc_entityblueprint"
+    elif int(collection.prim_collection_properties.physics_collision_type) == int(aloc_format.PhysicsCollisionType.STATIC):
+        geomentity_json["tbluHash"] = "002E141E1B1C6EFE"
+        geomentity_json["entities"]["2ed3aa8cc1e0b74f"]["factory"] = "[assembly:/templates/aspectdummy.aspect]([modules:/zgeomentity.class].entitytype,[modules:/zstaticphysicsaspect.class].entitytype,[modules:/zcollisionresourceshapeaspect.class].entitytype).pc_entitytype"
+        geomentity_json["entities"]["2ed3aa8cc1e0b74f"]["blueprint"] = "[assembly:/templates/aspectdummy.aspect]([modules:/zgeomentity.class].entitytype,[modules:/zstaticphysicsaspect.class].entitytype,[modules:/zcollisionresourceshapeaspect.class].entitytype).pc_entityblueprint"
+        geomentity_json["entities"]["2ed3aa8cc1e0b74f"]["properties"]["m_bRemovePhysics"] = {
+			"type": "bool",
+			"value": collection.prim_collection_properties.m_bRemovePhysics
+		}
+    elif int(collection.prim_collection_properties.physics_collision_type) == int(aloc_format.PhysicsCollisionType.RIGIDBODY):
+        geomentity_json["tbluHash"] = "00C7E348A80A6E6E"
+        geomentity_json["entities"]["2ed3aa8cc1e0b74f"]["factory"] = "[assembly:/templates/aspectdummy.aspect]([modules:/zgeomentity.class].entitytype,[modules:/zdynamicphysicsaspect.class].entitytype,[modules:/zcollisionresourceshapeaspect.class].entitytype).pc_entitytype"
+        geomentity_json["entities"]["2ed3aa8cc1e0b74f"]["blueprint"] = "[assembly:/templates/aspectdummy.aspect]([modules:/zgeomentity.class].entitytype,[modules:/zdynamicphysicsaspect.class].entitytype,[modules:/zcollisionresourceshapeaspect.class].entitytype).pc_entityblueprint"
+        geomentity_json["entities"]["2ed3aa8cc1e0b74f"]["properties"]["m_bRemovePhysics"] = {
+            "type": "bool",
+            "value": collection.prim_collection_properties.m_bRemovePhysics
+        }
+        geomentity_json["entities"]["2ed3aa8cc1e0b74f"]["properties"]["m_bKinematic"] = {
+            "type": "bool",
+            "value": collection.prim_collection_properties.m_bKinematic
+        }
+        geomentity_json["entities"]["2ed3aa8cc1e0b74f"]["properties"]["m_bStartSleeping"] = {
+            "type": "bool",
+            "value": collection.prim_collection_properties.m_bStartSleeping
+        }
+        geomentity_json["entities"]["2ed3aa8cc1e0b74f"]["properties"]["m_bIgnoreCharacters"] = {
+            "type": "bool",
+            "value": collection.prim_collection_properties.m_bIgnoreCharacters
+        }
+        geomentity_json["entities"]["2ed3aa8cc1e0b74f"]["properties"]["m_bEnableCollision"] = {
+            "type": "bool",
+            "value": collection.prim_collection_properties.m_bEnableCollision
+        }
+        geomentity_json["entities"]["2ed3aa8cc1e0b74f"]["properties"]["m_bAllowKinematicKinematicContactNotification"] = {
+            "type": "bool",
+            "value": collection.prim_collection_properties.m_bAllowKinematicKinematicContactNotification
+        }
+        geomentity_json["entities"]["2ed3aa8cc1e0b74f"]["properties"]["m_fMass"] = {
+            "type": "float32",
+            "value": collection.prim_collection_properties.m_fMass
+        }
+        geomentity_json["entities"]["2ed3aa8cc1e0b74f"]["properties"]["m_fFriction"] = {
+            "type": "float32",
+            "value": collection.prim_collection_properties.m_fFriction
+        }
+        geomentity_json["entities"]["2ed3aa8cc1e0b74f"]["properties"]["m_fRestitution"] = {
+            "type": "float32",
+            "value": collection.prim_collection_properties.m_fRestitution
+        }
+        geomentity_json["entities"]["2ed3aa8cc1e0b74f"]["properties"]["m_fLinearDampening"] = {
+            "type": "float32",
+            "value": collection.prim_collection_properties.m_fLinearDampening
+        }
+        geomentity_json["entities"]["2ed3aa8cc1e0b74f"]["properties"]["m_fAngularDampening"] = {
+            "type": "float32",
+            "value": collection.prim_collection_properties.m_fAngularDampening
+        }
+        geomentity_json["entities"]["2ed3aa8cc1e0b74f"]["properties"]["m_fSleepEnergyThreshold"] = {
+            "type": "float32",
+            "value": collection.prim_collection_properties.m_fSleepEnergyThreshold
+        }
+        geomentity_json["entities"]["2ed3aa8cc1e0b74f"]["properties"]["m_ePriority"] = {
+            "type": "ECollisionPriority",
+            "value": collection.prim_collection_properties.m_ePriority
+        }
+        geomentity_json["entities"]["2ed3aa8cc1e0b74f"]["properties"]["m_eCCD"] = {
+            "type": "ECCDUsage",
+            "value": collection.prim_collection_properties.m_eCCD
+        }
+        geomentity_json["entities"]["2ed3aa8cc1e0b74f"]["properties"]["m_eCenterOfMass"] = {
+            "type": "ECOMUsage",
+            "value": collection.prim_collection_properties.m_eCenterOfMass
+        }
+    with open(geom_export_path, "w", encoding='utf-8') as f:
+        json.dump(geomentity_json, f, ensure_ascii=False, indent=4)
+
+def write_prim_meta(output_path, materials):
+    meta_json = {
+        "hash_value": "000D4DE6CA5229F8",
+        "hash_offset": 8693330,
+        "hash_size": 2147486887,
+        "hash_resource_type": "PRIM",
+        "hash_reference_table_size": 13,
+        "hash_reference_table_dummy": 0,
+        "hash_size_final": 6560,
+        "hash_size_in_memory": 4294967295,
+        "hash_size_in_video_memory": 4294967295,
+        "hash_reference_data": [
+
+        ]
+    }
+    for i in range(len(materials)):
+        for m in materials:
+            if i == materials[m]["index"]:
+                meta_json["hash_reference_data"].append(
+                    {
+                        "hash": materials[m]["ioi_path"],
+                        "flag": "5F"
+                    }
+                )
+    with open(output_path, "w", encoding='utf-8') as f:
+        json.dump(meta_json, f, ensure_ascii=False, indent=4)
