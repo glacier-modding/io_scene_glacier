@@ -682,8 +682,13 @@ def save_prim_sub_mesh(
                                                                     text_texd_scale,
                                                                     b"\x55",
                                                                 )
-                                    if "Specular" in n.inputs:
-                                        for l in n.inputs["Specular"].links:
+                                    # specular_node = None
+                                    if bpy.app.version >= (4, 0, 0):
+                                        specular_node = n.inputs["Specular IOR Level"]
+                                    else:
+                                        specular_node = n.inputs["Specular"]
+                                    if specular_node:
+                                        for l in specular_node.links:
                                             if l.from_node.type == "TEX_IMAGE":
                                                 # print("Specular Image Texture Found:", l.from_node.image.name)
                                                 ioi_path = (
