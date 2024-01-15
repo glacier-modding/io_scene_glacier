@@ -894,7 +894,10 @@ class GLACIER_OT_CopyMaterialProperties(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.material and context.active_object and context.selected_objects
+        if context.active_object:
+            if context.active_object.material_slots:
+                return bool(context.selected_objects)
+        return False
 
     def execute(self, context):
         active_object = context.active_object
