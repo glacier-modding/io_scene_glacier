@@ -986,7 +986,10 @@ def get_positions(mesh, matrix):
 def get_normals(mesh):
     """Get normal for each loop."""
     normals = np.empty(len(mesh.loops) * 3, dtype=np.float32)
-    mesh.calc_normals_split()
+    
+    if bpy.app.version < (4, 1, 0):
+        mesh.calc_normals_split()
+    
     mesh.loops.foreach_get("normal", normals)
 
     normals = normals.reshape(len(mesh.loops), 3)

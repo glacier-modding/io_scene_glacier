@@ -212,8 +212,8 @@ def load_prim_mesh(prim, borg, prim_name: str, mesh_index: int):
     mesh.prim_properties.lod = mask
 
     mesh.prim_properties.material_id = prim_mesh_obj.material_id
-    mesh.prim_properties.prim_type = str(prim_mesh_obj.prims.prim_header.type)
-    mesh.prim_properties.prim_sub_type = str(prim_mesh_obj.sub_type)
+    mesh.prim_properties.prim_type = str(prim_mesh_obj.prims.prim_header.type.name)
+    mesh.prim_properties.prim_sub_type = str(prim_mesh_obj.sub_type.name)
 
     mesh.prim_properties.axis_lock = [
         prim_mesh_obj.properties.isXaxisLocked(),

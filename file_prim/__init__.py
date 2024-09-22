@@ -498,25 +498,25 @@ class PrimProperties(PropertyGroup):
         name="Type",
         description="The type of the prim",
         items=[
-            ("PrimType.Unknown", "Unknown", ""),
-            ("PrimType.ObjectHeader", "Object Header", "The header of an Object"),
-            ("PrimType.Mesh", "Mesh", ""),
-            ("PrimType.Decal", "Decal", ""),
-            ("PrimType.Sprites", "Sprite", ""),
-            ("PrimType.Shape", "Shape", ""),
+            ("Unknown", "Unknown", ""),
+            ("ObjectHeader", "Object Header", "The header of an Object"),
+            ("Mesh", "Mesh", ""),
+            ("Decal", "Decal", ""),
+            ("Sprites", "Sprite", ""),
+            ("Shape", "Shape", ""),
         ],
-        default="PrimType.Mesh",
+        default="Mesh",
     )
 
     prim_subtype: EnumProperty(
         name="Sub-Type",
         description="The type of the prim",
         items=[
-            ("PrimObjectSubtype.Standard", "Standard", ""),
-            ("PrimObjectSubtype.Linked", "Linked", ""),
-            ("PrimObjectSubtype.Weighted", "Weighted", ""),
+            ("Standard", "Standard", ""),
+            ("Linked", "Linked", ""),
+            ("Weighted", "Weighted", ""),
         ],
-        default="PrimObjectSubtype.Standard",
+        default="Standard",
     )
 
     axis_lock: BoolVectorProperty(
