@@ -661,8 +661,9 @@ class PrimPhysicsGenerateBoxCollider(Operator):
         cube.parent = parent
         cube.display_type = "WIRE"
         collection = current_obj.users_collection[0]
-        collection.objects.link(cube)
-        bpy.context.collection.objects.unlink(cube)
+        if context.collection != collection:
+            collection.objects.link(cube)
+            bpy.context.collection.objects.unlink(cube)
         return {"FINISHED"}
 
 
@@ -679,8 +680,9 @@ class PrimPhysicsGenerateCapsuleCollider(Operator):
         cylinder.parent = parent
         cylinder.display_type = "WIRE"
         collection = current_obj.users_collection[0]
-        collection.objects.link(cylinder)
-        bpy.context.collection.objects.unlink(cylinder)
+        if context.collection != collection:
+            collection.objects.link(cylinder)
+            bpy.context.collection.objects.unlink(cylinder)
         return {"FINISHED"}
 
 
@@ -697,8 +699,9 @@ class PrimPhysicsGenerateSphereCollider(Operator):
         sphere.parent = parent
         sphere.display_type = "WIRE"
         collection = current_obj.users_collection[0]
-        collection.objects.link(sphere)
-        bpy.context.collection.objects.unlink(sphere)
+        if context.collection != collection:
+            collection.objects.link(sphere)
+            bpy.context.collection.objects.unlink(sphere)
 
         return {"FINISHED"}
 
