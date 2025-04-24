@@ -107,7 +107,7 @@ class ImportPRIM(bpy.types.Operator, ImportHelper):
         from . import bl_import_prim
 
         prim_paths = [
-            "%s\\%s" % (os.path.dirname(self.filepath), meshPaths.name)
+            os.path.join(os.path.dirname(self.filepath), meshPaths.name)
             for meshPaths in self.files
         ]
         for prim_path in prim_paths:
