@@ -464,7 +464,7 @@ def save_prim_sub_mesh(
         prim_mesh.vertexBuffer.vertices[i] = vertex
 
     prim_mesh.collision.tri_per_chunk = max_tris_per_chunk
-    # save_prim_hitboxes(mesh, prim_mesh)
+    save_prim_hitboxes(mesh, prim_mesh)
 
     if export_scene:
         if export_materials_textures:
@@ -853,118 +853,6 @@ def save_prim_sub_mesh(
                                     materials[slot.material.name] = material
                                     material_id = materials[slot.material.name]["index"]
 
-    # automatic collision bounding box generation start
-    triangles = []
-    for i in range(int(len(prim_mesh.indices) / 3)):
-        triangles.append(
-            [
-                prim_mesh.vertexBuffer.vertices[prim_mesh.indices[i * 3]],
-                prim_mesh.vertexBuffer.vertices[prim_mesh.indices[i * 3 + 1]],
-                prim_mesh.vertexBuffer.vertices[prim_mesh.indices[i * 3 + 2]],
-            ]
-        )
-    bbox = prim_mesh.calc_bb()
-    bbox_x = bbox[1][0] - bbox[0][0]
-    bbox_y = bbox[1][1] - bbox[0][1]
-    bbox_z = bbox[1][2] - bbox[0][2]
-    if bbox_x > bbox_y and bbox_x > bbox_z:
-        triangles = sorted(triangles, key=cmp_to_key(compare_x_axis))
-    elif bbox_y > bbox_z:
-        triangles = sorted(triangles, key=cmp_to_key(compare_y_axis))
-    else:
-        triangles = sorted(triangles, key=cmp_to_key(compare_z_axis))
-    coli_bb_max = [-sys.float_info.max] * 3
-    coli_bb_min = [sys.float_info.max] * 3
-    count = 0
-    count2 = 0
-    for triangle in reversed(triangles):
-        for t in range(3):
-            for axis in range(3):
-                if triangle[t].position[axis] > coli_bb_max[axis]:
-                    coli_bb_max[axis] = triangle[t].position[axis]
-                if triangle[t].position[axis] < coli_bb_min[axis]:
-                    coli_bb_min[axis] = triangle[t].position[axis]
-        count += 1
-        if count == max_tris_per_chunk:
-            entry = format.BoxColiEntry()
-            coli_bb_min[0] = (
-                0
-                if bbox_x <= 0.0
-                else int(((coli_bb_min[0] - bbox[0][0]) * 255) / (bbox_x))
-            )
-            coli_bb_min[1] = (
-                0
-                if bbox_y <= 0.0
-                else int(((coli_bb_min[1] - bbox[0][1]) * 255) / (bbox_y))
-            )
-            coli_bb_min[2] = (
-                0
-                if bbox_z <= 0.0
-                else int(((coli_bb_min[2] - bbox[0][2]) * 255) / (bbox_z))
-            )
-            coli_bb_max[0] = (
-                0
-                if bbox_x <= 0.0
-                else int(((coli_bb_max[0] - bbox[0][0]) * 255) / (bbox_x))
-            )
-            coli_bb_max[1] = (
-                0
-                if bbox_y <= 0.0
-                else int(((coli_bb_max[1] - bbox[0][1]) * 255) / (bbox_y))
-            )
-            coli_bb_max[2] = (
-                0
-                if bbox_z <= 0.0
-                else int(((coli_bb_max[2] - bbox[0][2]) * 255) / (bbox_z))
-            )
-            entry.min = coli_bb_min
-            entry.max = coli_bb_max
-            prim_mesh.collision.box_entries.append(entry)
-            count = 0
-            count2 += 1
-            coli_bb_max = [-sys.float_info.max] * 3
-            coli_bb_min = [sys.float_info.max] * 3
-    if count % max_tris_per_chunk != 0:
-        entry = format.BoxColiEntry()
-        coli_bb_min[0] = (
-            0
-            if bbox_x <= 0.0
-            else int(((coli_bb_min[0] - bbox[0][0]) * 255) / (bbox_x))
-        )
-        coli_bb_min[1] = (
-            0
-            if bbox_y <= 0.0
-            else int(((coli_bb_min[1] - bbox[0][1]) * 255) / (bbox_y))
-        )
-        coli_bb_min[2] = (
-            0
-            if bbox_z <= 0.0
-            else int(((coli_bb_min[2] - bbox[0][2]) * 255) / (bbox_z))
-        )
-        coli_bb_max[0] = (
-            0
-            if bbox_x <= 0.0
-            else int(((coli_bb_max[0] - bbox[0][0]) * 255) / (bbox_x))
-        )
-        coli_bb_max[1] = (
-            0
-            if bbox_y <= 0.0
-            else int(((coli_bb_max[1] - bbox[0][1]) * 255) / (bbox_y))
-        )
-        coli_bb_max[2] = (
-            0
-            if bbox_z <= 0.0
-            else int(((coli_bb_max[2] - bbox[0][2]) * 255) / (bbox_z))
-        )
-        entry.min = coli_bb_min
-        entry.max = coli_bb_max
-        prim_mesh.collision.box_entries.append(entry)
-        count = 0
-        count2 += 1
-        coli_bb_max = [-sys.float_info.max] * 3
-        coli_bb_min = [sys.float_info.max] * 3
-    # automatic collision bounding box generation end
-
     return prim_mesh, material_id
 
 
@@ -1063,44 +951,38 @@ def triangulate_object(obj):
     bm.free()
 
 
-def save_prim_hitboxes(bl_mesh, prim_sub_mesh):
-    bb_max = [-sys.float_info.max] * 3
-    bb_min = [sys.float_info.max] * 3
-    for vert in bl_mesh.vertices:
-        for axis in range(3):
-            if bb_max[axis] < vert.co[axis]:
-                bb_max[axis] = vert.co[axis]
-            if bb_min[axis] > vert.co[axis]:
-                bb_min[axis] = vert.co[axis]
-    triangles = np.array(bl_mesh.loop_triangles)
-    num_chunks = len(triangles) / prim_sub_mesh.collision.tri_per_chunk
-    if len(triangles) % prim_sub_mesh.collision.tri_per_chunk:
+def save_prim_hitboxes(mesh, prim_mesh):
+    bb_min = np.array([sys.float_info.max] * 3)
+    bb_max = np.array([-sys.float_info.max] * 3)
+    for f in range(len(mesh.loop_triangles)):
+        for v in range(3):
+            #print(f"Triangle loop {f}: Vertex {v}: Index {mesh.loop_triangles[f].vertices[v]}")
+            bb_min = np.min([bb_min, mesh.vertices[mesh.loop_triangles[f].vertices[v]].co], axis=0)
+            bb_max = np.max([bb_max, mesh.vertices[mesh.loop_triangles[f].vertices[v]].co], axis=0)
+    bb_diff = bb_max - bb_min
+    num_chunks = int(len(mesh.loop_triangles) / prim_mesh.collision.tri_per_chunk)
+    if len(mesh.loop_triangles) % prim_mesh.collision.tri_per_chunk:
         num_chunks += 1
-    chunks = np.array_split(triangles, num_chunks)
-    for chunk in chunks:
-        h_max = [-sys.float_info.max] * 3
-        h_min = [sys.float_info.max] * 3
-        for triangle in chunk:
-            for vert in triangle.vertices:
-                vert_pos = bl_mesh.vertices[vert].co
-                for axis in range(3):
-                    if h_max[axis] < vert_pos[axis]:
-                        h_max[axis] = vert_pos[axis]
-                    if h_min[axis] > vert_pos[axis]:
-                        h_min[axis] = vert_pos[axis]
-        bb_x = bb_max[0] - bb_min[0]
-        bb_y = bb_max[1] - bb_min[1]
-        bb_z = bb_max[2] - bb_min[2]
-        h_min[0] = 0 if bb_x == 0 else int(round(((h_min[0] - bb_min[0]) / bb_x) * 255))
-        h_min[1] = 0 if bb_y == 0 else int(round(((h_min[1] - bb_min[1]) / bb_y) * 255))
-        h_min[2] = 0 if bb_z == 0 else int(round(((h_min[2] - bb_min[2]) / bb_z) * 255))
-        h_max[0] = 0 if bb_x == 0 else int(round(((h_max[0] - bb_min[0]) / bb_x) * 255))
-        h_max[1] = 0 if bb_y == 0 else int(round(((h_max[1] - bb_min[1]) / bb_y) * 255))
-        h_max[2] = 0 if bb_z == 0 else int(round(((h_max[2] - bb_min[2]) / bb_z) * 255))
+    for n in range(num_chunks):
+        #print(f"chunk: {n}")
+        #print(f"faces: {n*prim_mesh.collision.tri_per_chunk} to {(n+1)*prim_mesh.collision.tri_per_chunk}")
+        coli_bb_min = np.array([sys.float_info.max] * 3)
+        coli_bb_max = np.array([-sys.float_info.max] * 3)
+        for f in range(n*prim_mesh.collision.tri_per_chunk,(n+1)*prim_mesh.collision.tri_per_chunk):
+            if f == len(mesh.loop_triangles):
+                break
+            for v in range(3):
+                coli_bb_min = np.min([coli_bb_min, mesh.vertices[mesh.loop_triangles[f].vertices[v]].co], axis=0)
+                coli_bb_max = np.max([coli_bb_max, mesh.vertices[mesh.loop_triangles[f].vertices[v]].co], axis=0)
         entry = format.BoxColiEntry()
-        entry.min = h_min
-        entry.max = h_max
-        prim_sub_mesh.collision.box_entries.append(entry)
+        coli_min = ((coli_bb_min - bb_min) * 255) / bb_diff
+        coli_max = ((coli_bb_max - bb_min) * 255) / bb_diff
+        for i in range(3):
+            entry.min[i] = int(round(coli_min[i]))
+            entry.max[i] = int(round(coli_max[i]))
+        prim_mesh.collision.box_entries.append(entry)
+        #print(f"coli entry min: {entry.min}")
+        #print(f"coli entry max: {entry.max}")
 
 
 def compare_x_axis(a, b):
