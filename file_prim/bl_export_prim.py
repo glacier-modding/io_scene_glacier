@@ -975,8 +975,10 @@ def save_prim_hitboxes(mesh, prim_mesh):
                 coli_bb_min = np.min([coli_bb_min, mesh.vertices[mesh.loop_triangles[f].vertices[v]].co], axis=0)
                 coli_bb_max = np.max([coli_bb_max, mesh.vertices[mesh.loop_triangles[f].vertices[v]].co], axis=0)
         entry = format.BoxColiEntry()
-        coli_min = ((coli_bb_min - bb_min) * 255) / bb_diff
-        coli_max = ((coli_bb_max - bb_min) * 255) / bb_diff
+        coli_min = (coli_bb_min - bb_min) * 255
+        coli_max = (coli_bb_max - bb_min) * 255
+        coli_min = [(coli_min[i] / bb_diff[i]) if bb_diff[i] != 0 else 0 for i in range(3)]
+        coli_max = [(coli_max[i] / bb_diff[i]) if bb_diff[i] != 0 else 0 for i in range(3)]
         for i in range(3):
             entry.min[i] = int(round(coli_min[i]))
             entry.max[i] = int(round(coli_max[i]))
