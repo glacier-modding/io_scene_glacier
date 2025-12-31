@@ -47,7 +47,7 @@ def save_prim(
         collections.append(selected_collection)
 
     for collection in collections:
-        prim = format.RenderPrimitve()
+        prim = format.RenderPrimitive()
         prim.header.bone_rig_resource_index = (
             collection.prim_collection_properties.bone_rig_resource_index
         )

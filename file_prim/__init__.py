@@ -1115,17 +1115,17 @@ def unregister():
 
 
 def menu_func_import(self, context):
-    self.layout.operator(ImportPRIM.bl_idname, text="Glacier RenderPrimitve (.prim)")
+    self.layout.operator(ImportPRIM.bl_idname, text="Glacier RenderPrimitive (.prim)")
 
 
 def menu_func_export(self, context):
     exportprim_instance = self.layout.operator(
-        ExportPRIM.bl_idname, text="Glacier RenderPrimitve (.prim)"
+        ExportPRIM.bl_idname, text="Glacier RenderPrimitive (.prim)"
     )
     exportprim_instance.export_scene = False
     exportprim_instance2 = self.layout.operator(
         ExportPRIM.bl_idname,
-        text="Glacier RenderPrimitve (prims, materials, textures, geomentities and collision)",
+        text="Glacier RenderPrimitive (prims, materials, textures, geomentities and collision)",
     )
     exportprim_instance2.export_scene = True
 

@@ -35,6 +35,9 @@ class BinaryReader:
     def readInt(self):
         return struct.unpack("i", self.file.read(4))[0]
 
+    def readIntBigEndian(self):
+        return struct.unpack(">i", self.file.read(4))[0]
+
     def readUInt(self):
         return struct.unpack("I", self.file.read(4))[0]
 
@@ -131,6 +134,8 @@ class BinaryReader:
             c = self.file.read(1)
             if c != b"\x00":
                 string.append(c)
+            if not c:
+                break
         return b"".join(string)
 
     def readCString(self):
