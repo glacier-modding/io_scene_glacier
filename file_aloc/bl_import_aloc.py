@@ -196,6 +196,10 @@ def load_primitive_mesh_objects(aloc, aloc_name, collection, context, include_no
             set_mesh_aloc_properties(obj.data, aloc.collision_type, aloc.data_type,
                                      PhysicsCollisionPrimitiveType.SPHERE)
             objects.append(obj)
+            if obj.users_collection:
+                for coll in obj.users_collection:
+                    coll.objects.unlink(obj)
+            collection.objects.link(obj)
         else:
             log("DEBUG", "Skipping Non-collidable ALOC mesh: " + aloc_name + " with mesh index: " + str(
                 mesh_index) + " and collision layer type: " + str(sphere.collision_layer), "load_aloc")
@@ -246,6 +250,10 @@ def load_primitive_mesh_objects(aloc, aloc_name, collection, context, include_no
             set_mesh_aloc_properties(obj.data, aloc.collision_type, aloc.data_type,
                                      PhysicsCollisionPrimitiveType.CAPSULE)
             objects.append(obj)
+            if obj.users_collection:
+                for coll in obj.users_collection:
+                    coll.objects.unlink(obj)
+            collection.objects.link(obj)
         else:
             log("DEBUG", "Skipping Non-collidable ALOC mesh: " + aloc_name + " with mesh index: " + str(
                 mesh_index) + " and collision layer type: " + str(capsule.collision_layer), "load_aloc")

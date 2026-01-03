@@ -136,7 +136,7 @@ class ImportALOC(bpy.types.Operator, ImportHelper):
 
     def execute(self, context):
         aloc_paths = [
-            "%s\\%s" % (os.path.dirname(self.filepath), aloc_paths.name)
+            os.path.join(os.path.dirname(self.filepath), aloc_paths.name)
             for aloc_paths in self.files
         ]
         for aloc_path in aloc_paths:
