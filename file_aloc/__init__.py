@@ -144,7 +144,7 @@ class ImportALOC(bpy.types.Operator, ImportHelper):
                 self, context, aloc_path, True
             )
 
-            if aloc_result == 1:
+            if aloc_result == -1:
                 BlenderUI.MessageBox(
                     'Failed to import ALOC "%s"' % aloc_path, "Importing error", "ERROR"
                 )

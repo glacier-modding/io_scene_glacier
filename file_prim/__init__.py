@@ -655,10 +655,26 @@ class PrimPhysicsGenerateBoxCollider(Operator):
     def execute(self, context):
         current_obj = bpy.context.selected_objects[0]
         parent = current_obj
-        bpy.ops.mesh.primitive_cube_add(size=1)
+
+        min_v = mathutils.Vector((float('inf'), float('inf'), float('inf')))
+        max_v = mathutils.Vector((float('-inf'), float('-inf'), float('-inf')))
+
+        for v in parent.bound_box:
+            min_v.x = min(min_v.x, v[0])
+            min_v.y = min(min_v.y, v[1])
+            min_v.z = min(min_v.z, v[2])
+            max_v.x = max(max_v.x, v[0])
+            max_v.y = max(max_v.y, v[1])
+            max_v.z = max(max_v.z, v[2])
+
+        bpy.ops.mesh.primitive_cube_add(size=1, location=(0, 0, 0), rotation=(0, 0, 0))
         cube = bpy.context.selected_objects[0]
         cube.name = "BoxCollider"
         cube.parent = parent
+        cube.matrix_parent_inverse = mathutils.Matrix.Identity(4)
+        cube.location = (min_v + max_v) / 2
+        cube.rotation_euler = (0, 0, 0)
+        cube.scale = max_v - min_v
         cube.display_type = "WIRE"
         collection = current_obj.users_collection[0]
         if context.collection != collection:
@@ -674,15 +690,59 @@ class PrimPhysicsGenerateCapsuleCollider(Operator):
     def execute(self, context):
         current_obj = bpy.context.selected_objects[0]
         parent = current_obj
-        bpy.ops.mesh.primitive_cylinder_add(radius=0.5, depth=1)
+        min_v = mathutils.Vector((float('inf'), float('inf'), float('inf')))
+        max_v = mathutils.Vector((float('-inf'), float('-inf'), float('-inf')))
+
+        for v in parent.bound_box:
+            min_v.x = min(min_v.x, v[0])
+            min_v.y = min(min_v.y, v[1])
+            min_v.z = min(min_v.z, v[2])
+            max_v.x = max(max_v.x, v[0])
+            max_v.y = max(max_v.y, v[1])
+            max_v.z = max(max_v.z, v[2])
+        radius = min(parent.dimensions[0], parent.dimensions[1], parent.dimensions[2]) / 2
+        bbox_height = (max_v - min_v).z * abs(parent.scale[2])
+        cylinder_height = bbox_height - 2 * radius
+        if cylinder_height < 0:
+            cylinder_height = 0
+
+        bpy.ops.mesh.primitive_cylinder_add(
+            radius=radius,
+            depth=cylinder_height,
+            scale=mathutils.Vector((1 / parent.scale[0], 1 / parent.scale[1], 1 / parent.scale[2]))
+        )
         cylinder = bpy.context.selected_objects[0]
-        cylinder.name = "CapsuleCollider"
-        cylinder.parent = parent
-        cylinder.display_type = "WIRE"
+        cylinder.matrix_parent_inverse = mathutils.Matrix.Identity(4)
+        cylinder.location = (min_v + max_v) / 2
+        cylinder.rotation_euler = (0, 0, 0)
+        z_offset = (cylinder_height / 2) / parent.scale[2] if parent.scale[2] != 0 else 0
+        bpy.ops.mesh.primitive_ico_sphere_add(
+            subdivisions=2,
+            radius=radius,
+            scale=mathutils.Vector((1 / parent.scale[0], 1 / parent.scale[1], 1 / parent.scale[2])),
+            location=(cylinder.location[0], cylinder.location[1], cylinder.location[2] + z_offset)
+        )
+        top = bpy.context.selected_objects[0]
+        bpy.ops.mesh.primitive_ico_sphere_add(
+            subdivisions=2,
+            radius=radius,
+            scale=mathutils.Vector((1 / parent.scale[0], 1 / parent.scale[1], 1 / parent.scale[2])),
+            location=(cylinder.location[0], cylinder.location[1], cylinder.location[2] - z_offset)
+        )
+        bot = bpy.context.selected_objects[0]
+        top.select_set(True)
+        cylinder.select_set(True)
+        bot.select_set(True)
+        context.view_layer.objects.active = cylinder
+        bpy.ops.object.join()
+        obj = bpy.context.selected_objects[0]
+        obj.name = "CapsuleCollider"
+        obj.parent = parent
+        obj.display_type = "WIRE"
         collection = current_obj.users_collection[0]
         if context.collection != collection:
-            collection.objects.link(cylinder)
-            bpy.context.collection.objects.unlink(cylinder)
+            collection.objects.link(obj)
+            bpy.context.collection.objects.unlink(obj)
         return {"FINISHED"}
 
 
@@ -693,7 +753,17 @@ class PrimPhysicsGenerateSphereCollider(Operator):
     def execute(self, context):
         current_obj = bpy.context.selected_objects[0]
         parent = current_obj
-        bpy.ops.mesh.primitive_uv_sphere_add(radius=0.5)
+        bpy.ops.object.select_all(action='DESELECT')
+        radius = min(parent.dimensions[0], parent.dimensions[1], parent.dimensions[2]) / 2
+        bpy.ops.mesh.primitive_uv_sphere_add(
+            location=mathutils.Vector(
+                ((parent.bound_box[6][0] + parent.bound_box[0][0]) / 2,
+                 (parent.bound_box[6][1] + parent.bound_box[0][1]) / 2,
+                 (parent.bound_box[6][2] + parent.bound_box[0][2]) / 2)
+            ),
+            radius=radius,
+            scale=(1.0 / parent.scale[0], 1.0 / parent.scale[1], 1.0 / parent.scale[2])
+        )
         sphere = bpy.context.selected_objects[0]
         sphere.name = "SphereCollider"
         sphere.parent = parent
