@@ -16,7 +16,7 @@ def load_prim(operator, context, collection, filepath, use_rig, rig_filepath):
     fp = os.fsencode(filepath)
     file = open(fp, "rb")
     br = io_binary.BinaryReader(file)
-    prim = prim_format.RenderPrimitve()
+    prim = prim_format.RenderPrimitive()
     prim.read(br)
     br.close()
 

@@ -958,7 +958,7 @@ def readHeader(br):
     return header_values
 
 
-class RenderPrimitve:
+class RenderPrimitive:
     """
     RenderPrimitive class, represents the .prim file format.
     It contains a multitude of meshes and properties.
