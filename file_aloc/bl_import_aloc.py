@@ -1,5 +1,5 @@
 from . import format as aloc_format
-from .format import PhysicsCollisionType, PhysicsDataType, PhysicsCollisionPrimitiveType
+from .format import PhysicsCollisionType, PhysicsDataType, PhysicsCollisionPrimitiveType, PhysicsCollisionLayerType
 import bpy
 import bmesh
 import math
@@ -35,7 +35,7 @@ def to_mesh(bm, mesh, obj, collection, context):
     obj.select_set(True)
 
 
-def set_mesh_aloc_properties(mesh, collision_type, data_type, sub_data_type):
+def set_mesh_aloc_properties(mesh, collision_type, data_type, sub_data_type, collision_layer):
     mask = []
     for col_type in PhysicsCollisionType:
         mask.append(collision_type == col_type.value)
@@ -44,11 +44,14 @@ def set_mesh_aloc_properties(mesh, collision_type, data_type, sub_data_type):
     mesh.aloc_properties.aloc_type = f"{pdt.__class__.__name__}.{pdt.name}"
     pcpt = PhysicsCollisionPrimitiveType(sub_data_type)
     mesh.aloc_properties.aloc_subtype = f"{pcpt.__class__.__name__}.{pcpt.name}"
+    pcl = PhysicsCollisionLayerType(collision_layer)
+    mesh.aloc_properties.collision_layer = f"{pcl.__class__.__name__}.{pcl.name}"
+    mesh.prim_physics_properties.collision_layer_type = str(collision_layer)
 
 
-def create_new_object(aloc_name, collision_type, data_type):
+def create_new_object(aloc_name, collision_type, data_type, collision_layer):
     mesh = bpy.data.meshes.new(aloc_name)
-    set_mesh_aloc_properties(mesh, collision_type, data_type, PhysicsCollisionPrimitiveType.NONE)
+    set_mesh_aloc_properties(mesh, collision_type, data_type, PhysicsCollisionPrimitiveType.NONE, collision_layer)
     obj = bpy.data.objects.new(aloc_name, mesh)
     return obj
 
@@ -87,9 +90,9 @@ def collidable_layer(collision_layer):
 def load_triangle_mesh_objects(aloc, aloc_name, collection, context, include_non_collidable_layers):
     objects = []
     for mesh_index in range(aloc.triangle_mesh_count):
-        obj = create_new_object("TriangleMeshCollider", aloc.collision_type, aloc.data_type)
         bm = bmesh.new()
         m = aloc.triangle_meshes[mesh_index]
+        obj = create_new_object("TriangleMeshCollider", aloc.collision_type, aloc.data_type, m.collision_layer)
         bmv = []
         if include_non_collidable_layers or collidable_layer(m.collision_layer):
             for v in m.vertices:
@@ -115,9 +118,9 @@ def load_convex_mesh_objects(aloc, aloc_name, collection, context, include_non_c
     for mesh_index in range(aloc.convex_mesh_count):
         log("DEBUG", " " + aloc_name + " convex mesh " + str(mesh_index) + " / " + str(aloc.convex_mesh_count),
             "load_aloc")
-        obj = create_new_object("ConvexMeshCollider", aloc.collision_type, aloc.data_type)
         bm = bmesh.new()
         m = aloc.convex_meshes[mesh_index]
+        obj = create_new_object("ConvexMeshCollider", aloc.collision_type, aloc.data_type, m.collision_layer)
         if include_non_collidable_layers or collidable_layer(m.collision_layer):
             for v in m.vertices:
                 bm.verts.new(v)
@@ -142,7 +145,7 @@ def load_primitive_mesh_objects(aloc, aloc_name, collection, context, include_no
     for mesh_index, box in enumerate(aloc.primitive_boxes):
         if include_non_collidable_layers or collidable_layer(box.collision_layer):
             log("DEBUG", "Primitive Box", "load_aloc")
-            obj = create_new_object("BoxCollider", aloc.collision_type, aloc.data_type)
+            obj = create_new_object("BoxCollider", aloc.collision_type, aloc.data_type, box.collision_layer)
             obj.location = (box.position[0], box.position[1], box.position[2])
             if len(box.rotation) == 4:
                 obj.rotation_mode = 'QUATERNION'
@@ -194,7 +197,7 @@ def load_primitive_mesh_objects(aloc, aloc_name, collection, context, include_no
             link_new_object("SphereCollider", context)
             obj = bpy.context.active_object
             set_mesh_aloc_properties(obj.data, aloc.collision_type, aloc.data_type,
-                                     PhysicsCollisionPrimitiveType.SPHERE)
+                                     PhysicsCollisionPrimitiveType.SPHERE, sphere.collision_layer)
             objects.append(obj)
             if obj.users_collection:
                 for coll in obj.users_collection:
@@ -248,7 +251,7 @@ def load_primitive_mesh_objects(aloc, aloc_name, collection, context, include_no
                 obj.rotation_mode = 'QUATERNION'
                 obj.rotation_quaternion = (w, x, y, z)
             set_mesh_aloc_properties(obj.data, aloc.collision_type, aloc.data_type,
-                                     PhysicsCollisionPrimitiveType.CAPSULE)
+                                     PhysicsCollisionPrimitiveType.CAPSULE, capsule.collision_layer)
             objects.append(obj)
             if obj.users_collection:
                 for coll in obj.users_collection:

@@ -19,25 +19,17 @@ def save_aloc(
     """
     export_file = os.fsencode(filepath)
     collections = []
-    print(selected_collection)
-    print(export_all_collections)
     if selected_collection == bpy.data.scenes[0].collection:
-        print("selected collection is None")
-
         collections.append(bpy.data.scenes[0].collection)
-        print(bpy.data.scenes[0].collection)
     else:
         if export_all_collections:
             for collection in bpy.data.scenes[0].collection.children:
                 collections.append(collection)
         else:
             collections.append(selected_collection)
-    print(collections)
 
     for collection in collections:
-        print(collection)
         mesh_obs = [o for o in collection.all_objects if o.type == "MESH"]
-        print(mesh_obs)
 
         write_aloc = False
         # Only export to ALOC if data and collision types are both not set to NONE
