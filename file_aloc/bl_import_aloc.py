@@ -281,6 +281,7 @@ def load_aloc(operator, context, filepath, include_non_collidable_layers):
     collection.prim_collection_properties.physics_collision_type = str(PhysicsCollisionType(aloc.collision_type))
     if aloc.data_type == aloc_format.PhysicsDataType.CONVEX_MESH_AND_TRIANGLE_MESH:
         log("DEBUG", "Converting Convex Mesh and Triangle Mesh ALOC " + aloc_name + " to blender mesh", "load_aloc")
+        load_convex_mesh_objects(aloc, aloc_name, collection, context, include_non_collidable_layers)
         load_triangle_mesh_objects(aloc, aloc_name, collection, context, include_non_collidable_layers)
     elif aloc.data_type == aloc_format.PhysicsDataType.CONVEX_MESH:
         log("DEBUG", "Converting Convex Mesh ALOC " + aloc_name + " to blender mesh", "load_aloc")
