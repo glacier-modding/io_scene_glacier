@@ -70,45 +70,6 @@ class AlocProperties(PropertyGroup):
     )
 
 
-class GLACIER_PT_AlocPropertiesPanel(bpy.types.Panel):
-    """ "Adds a panel to the object window to show the Aloc_Properties"""
-
-    bl_idname = "GLACIER_PT_AlocPropertiesPanel"
-    bl_space_type = "PROPERTIES"
-    bl_region_type = "WINDOW"
-    bl_context = "object"
-    bl_category = "Glacier"
-    bl_label = "Aloc Properties"
-
-    @classmethod
-    def poll(self, context):
-        return context.object is not None
-
-    def draw(self, context):
-        obj = context.object
-        if obj.type != "MESH":
-            return
-
-        mesh = obj.data
-
-        layout = self.layout
-
-        layout.label(text="Collision Type mask:")
-        row = layout.row(align=True)
-        for i, name in enumerate(
-            ["N", "S", "R", "SL", "KL", "BC"]
-        ):
-            row.prop(mesh.aloc_properties, "collision_type", index=i, text=name, toggle=True)
-
-        row = layout.row(align=True)
-        row.prop(mesh.aloc_properties, "aloc_type")
-        row.enabled = False
-
-        row = layout.row()
-        row.prop(mesh.aloc_properties, "aloc_subtype")
-        row.enabled = False
-
-
 class ImportALOC(bpy.types.Operator, ImportHelper):
     """Load a collision .aloc file"""
 
@@ -226,7 +187,6 @@ class ExportALOC(bpy.types.Operator, ExportHelper):
 
 classes = [
     AlocProperties,
-    GLACIER_PT_AlocPropertiesPanel,
     ImportALOC,
     ExportALOC
 ]
